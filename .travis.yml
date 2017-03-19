@@ -39,4 +39,4 @@ script:
   - cd ..
 
 after_success:
-  - coveralls -r . -b Coverage -e dep -e Build -e test -e Coverage/CMakeFiles --gcov gcov-5 --verbose 
+  - coveralls -r . -b Coverage -e dep -e Build -e test --gcov gcov-5 --verbose 
