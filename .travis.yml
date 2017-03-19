@@ -25,7 +25,7 @@ script:
   - cmake --version
   - mkdir Build
   - cd Build 
-  - cmake --build . ..
+  - cmake ..
   - make
   - make test
   - ctest -T Memcheck
