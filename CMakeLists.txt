@@ -19,3 +19,7 @@ target_link_libraries(jsonTests libFixedJSON gtest)
 
 add_executable(jsonGenTests test/json_gen.cpp)
 target_link_libraries(jsonGenTests libFixedJSON gtest)
+
+enable_testing()
+add_test(jsonTests jsonTests)
+add_test(jsonGenTests jsonGenTests)
