@@ -17,13 +17,26 @@ before_install:
 
 install:
   - pip install --user cpp-coveralls
+  - pip install --user urllib3[secure]
   - export CXX="g++-5"
   - export CC="gcc-5"
   
 script: 
   - g++-5 --version
   - cmake --version
-  - cmake . 
+  - mkdir Build
+  - cd Build 
+  - cmake ..
   - make
   - make test
   - ctest -T Memcheck
+  - cd ..
+  - mkdir Coverage
+  - cd Coverage 
+  - cmake -DCMAKE_BUILD_TYPE=Coverage --build . ..
+  - make
+  - make test 
+  - cd ..
+
+after_success:
+  - coveralls -r . -b Coverage -e dep -e Build -e test --gcov gcov-5 --verbose 
