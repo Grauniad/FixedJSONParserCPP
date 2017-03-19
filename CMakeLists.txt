@@ -16,3 +16,6 @@ add_subdirectory(dep/rapidjson/thirdparty/gtest EXCLUDE_FROM_ALL)
 
 add_executable(jsonTests test/json.cpp)
 target_link_libraries(jsonTests libFixedJSON gtest)
+
+add_executable(jsonGenTests test/json_gen.cpp)
+target_link_libraries(jsonGenTests libFixedJSON gtest)
