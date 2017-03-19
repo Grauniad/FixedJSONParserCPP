@@ -8,6 +8,7 @@ addons:
     packages:
       - g++-5
       - gcc-5
+      - cmake
 
 
 before_install:
@@ -21,5 +22,6 @@ install:
 script: 
   - Scripts/initModules.sh
   - g++-5 --version
+  - cmake --version
   - cmake . 
   - make
