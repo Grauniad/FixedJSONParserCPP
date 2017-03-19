@@ -36,6 +36,7 @@ script:
   - cmake -DCMAKE_BUILD_TYPE=Coverage --build . ..
   - make
   - make test 
+  - cd ..
 
 after_success:
   - coveralls -r . -b Coverage -e dep --gcov gcov-5 --verbose 
