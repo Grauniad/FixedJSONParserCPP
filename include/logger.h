@@ -18,13 +18,12 @@ enum LOG_LEVEL {
 #define SLOG_FROM(level, context, text) \
     if (level < MINIMUM_LOGGING_LEVEL) \
     { \
-        std::cout << text; \
+        std::cout << text << std::endl;\
     }
 
 #define LOG_FROM(level, context, text) \
     if (level < MINIMUM_LOGGING_LEVEL) \
     { \
-        std::cout << text; \
+        std::cout << text << std::endl;\
     }
-
 #endif // include guard
