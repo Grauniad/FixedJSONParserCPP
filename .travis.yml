@@ -20,7 +20,6 @@ install:
   - export CC="gcc-5"
   
 script: 
-  - Scripts/initModules.sh
   - g++-5 --version
   - cmake --version
   - cmake . 
