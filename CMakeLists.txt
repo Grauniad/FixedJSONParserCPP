@@ -8,7 +8,7 @@ set(SOURCE_FILES
         include/SimpleJSON.hpp
         src/SimpleJSON.cpp)
 
-include_directories(dep/rapidjson/include dep/rapidjson/thirdparty/gtest/googletest/include include)
+include_directories(dep/rapidjson/include dep/rapidjson/thirdparty/gtest/include include)
 
 add_library(libFixedJSON STATIC ${SOURCE_FILES})
 

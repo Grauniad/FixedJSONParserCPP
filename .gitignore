@@ -2,6 +2,11 @@
 cmake-build-debug
 
 jsonTests
+jsonGenTests
 liblibFixedJSON.a
 FixedJSON.cbp
+
 CMakeFiles
+CMakeCache.txt
+Makefile
+cmake_install.cmake
