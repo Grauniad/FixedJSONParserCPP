@@ -1,2 +1,7 @@
 .idea
 cmake-build-debug
+
+jsonTests
+liblibFixedJSON.a
+FixedJSON.cbp
+CMakeFiles
