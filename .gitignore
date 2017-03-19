@@ -8,5 +8,8 @@ FixedJSON.cbp
 
 CMakeFiles
 CMakeCache.txt
+CTestTestfile.cmake
 Makefile
 cmake_install.cmake
+Testing
+DartConfiguration.tcl

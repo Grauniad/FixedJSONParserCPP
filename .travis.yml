@@ -1,0 +1,29 @@
+sudo: false
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - george-edison55-precise-backports
+    packages:
+      - g++-5
+      - cmake
+      - cmake-data
+      - valgrind
+
+
+before_install:
+  - git submodule update --init --recursive
+
+install:
+  - pip install --user cpp-coveralls
+  - export CXX="g++-5"
+  - export CC="gcc-5"
+  
+script: 
+  - g++-5 --version
+  - cmake --version
+  - cmake . 
+  - make
+  - make test
+  - ctest -T Memcheck
