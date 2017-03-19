@@ -8,4 +8,6 @@ set(SOURCE_FILES
         include/SimpleJSON.hpp
         src/SimpleJSON.cpp)
 
-add_executable(FixedJSON ${SOURCE_FILES})
+include_directories(dep/rapidjson/include include)
+
+add_library(libFixedJSON STATIC ${SOURCE_FILES})

@@ -209,7 +209,7 @@ struct IntArrayField: public FieldArrayBase<int> {
 
     bool Uint(unsigned u) {
         if (u <= static_cast<unsigned>(std::numeric_limits<int>::max())) {
-            value.push_back(u);
+            value.push_back(std::move(u));
         } else {
             throw spJSON::ValueError{Name()};
         }
@@ -254,7 +254,7 @@ struct I64Field: public FieldBase {
 
 struct I64ArrayField: public FieldArrayBase<int64_t> {
     bool Int(int i) {
-        value.push_back(i);
+        value.push_back(std::move(i));
         return true;
     }
 
@@ -264,14 +264,14 @@ struct I64ArrayField: public FieldArrayBase<int64_t> {
     }
 
     bool Uint(unsigned u) {
-        value.push_back(u);
+        value.push_back(std::move(u));
         return true;
     }
 
     bool Uint64(uint64_t u) {
         if (u <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
         {
-            value.push_back(u);
+            value.push_back(std::move(u));
         } else {
             throw spJSON::ValueError{Name()};
         }
@@ -301,7 +301,7 @@ struct UI64Field: public FieldBase {
 
 struct UI64ArrayField: public FieldArrayBase<uint64_t> {
     bool Uint(unsigned u) {
-        value.push_back(u);
+        value.push_back(std::move(u));
         return true;
     }
 
@@ -371,27 +371,27 @@ struct DoubleField: public FieldBase {
 
 struct DoubleArrayField: public FieldArrayBase<double> {
     bool Int(int i) {
-        value.push_back(i);
+        value.push_back(std::move(i));
         return true;
     }
 
     bool Int64(int64_t i) {
-        value.push_back(i);
+        value.push_back(std::move(i));
         return true;
     }
 
     bool Uint(unsigned u) {
-        value.push_back(u);
+        value.push_back(std::move(u));
         return true;
     }
 
     bool Uint64(uint64_t u) {
-        value.push_back(u);
+        value.push_back(std::move(u));
         return true;
     }
 
     bool Double(double d) {
-        value.push_back(d);
+        value.push_back(std::move(d));
         return true;
     }
 };
