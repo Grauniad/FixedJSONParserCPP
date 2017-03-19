@@ -348,7 +348,7 @@ public:
 
         if (!active.arrayTyped) {
             SLOG_FROM(
-                LOG_WARNING,
+                LOG_VERBOSE,
                 "SimpleParsedJSON_Generator::EndArray",
                 "Array " << active.namespaceName << "::" << active.current->first << 
                 " finished, was NOT typed successfuly");
@@ -464,7 +464,7 @@ public:
             started = false;
         } else {
             SLOG_FROM(
-                LOG_WARNING,
+                LOG_VERBOSE,
                 "SimpleParsedJSON_Generator::EndObject",
                 "End of non-existent object!");
         }
