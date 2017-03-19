@@ -27,3 +27,8 @@ script:
   - make
   - make test
   - ctest -T Memcheck
+  - mkdir Coverage
+  - cd Coverage 
+  - cmake .. -DCMAKE_BUILD_TYPE=DEBUG
+  - make
+  - make test 
