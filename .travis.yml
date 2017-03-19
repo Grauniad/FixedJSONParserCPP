@@ -23,10 +23,13 @@ install:
 script: 
   - g++-5 --version
   - cmake --version
-  - cmake . 
+  - mkdir Build
+  - cd Build 
+  - cmake --build . ..
   - make
   - make test
   - ctest -T Memcheck
+  - cd ..
   - mkdir Coverage
   - cd Coverage 
   - cmake -DCMAKE_BUILD_TYPE=Debug --build . ..
