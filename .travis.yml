@@ -17,6 +17,7 @@ before_install:
 
 install:
   - pip install --user cpp-coveralls
+  - pip install urllib3[secure]
   - export CXX="g++-5"
   - export CC="gcc-5"
   
