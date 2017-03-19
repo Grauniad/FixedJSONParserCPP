@@ -25,3 +25,4 @@ script:
   - cmake . 
   - make
   - make test
+  - ctest -T Memcheck
