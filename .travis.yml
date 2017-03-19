@@ -1,0 +1,25 @@
+sudo: false
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - boost-latest
+    packages:
+      - g++-5
+      - gcc-5
+
+
+before_install:
+  - git submodule update --init --recursive
+
+install:
+  - pip install --user cpp-coveralls
+  - export CXX="g++-5"
+  - export CC="gcc-5"
+  
+script: 
+  - Scripts/initModules.sh
+  - g++-5 --version
+  - cmake . 
+  - make
