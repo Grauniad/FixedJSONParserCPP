@@ -34,9 +34,13 @@ target_link_libraries(jsonTests libFixedJSON gtest)
 add_executable(jsonGenTests test/json_gen.cpp)
 target_link_libraries(jsonGenTests libFixedJSON gtest)
 
+add_executable(invalidJson test/invalidJson.cpp)
+target_link_libraries(invalidJson libFixedJSON gtest)
+
 enable_testing()
 add_test(jsonTests jsonTests)
 add_test(jsonGenTests jsonGenTests)
+add_test(invalidJson invalidJson)
 
 
 SET(CMAKE_CXX_FLAGS_COVERAGE

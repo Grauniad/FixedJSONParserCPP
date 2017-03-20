@@ -48,7 +48,7 @@ TEST(JSONParsing, SingleString) {
     std::string rawJson = R"JSON( 
     {
         "Field1": "Hello World!",
-        "Field2": "",
+        "Field2": ""
     }
     )JSON";
 
@@ -82,6 +82,302 @@ TEST(JSONParsing, SingleString) {
     ASSERT_EQ( json3.Get<Field2>() , "");
 }
 
+TEST(JSONParsing, ParseStringArray) {
+    std::string rawJson = R"JSON( 
+        {
+            "StringArrayField1": [
+                "String 1",
+                "String 2",
+                "",
+                "String 4"
+            ],
+            "StringArrayField2": []
+        }
+    )JSON";
+
+    SimpleParsedJSON<StringArrayField1, StringArrayField2> json, json2, json3;
+
+    std::string error;
+
+    bool ok = json.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    const vector<string>& v1 = json.Get<StringArrayField1>();
+    const vector<string>& v2 = json.Get<StringArrayField2>();
+
+    ASSERT_EQ(v1.size(),4 );
+
+    ASSERT_EQ(v1[0],"String 1");
+
+    ASSERT_EQ(v1[1],"String 2");
+
+    ASSERT_EQ(v1[2],"");
+
+    ASSERT_EQ(v1[3],"String 4");
+
+    ASSERT_EQ(v2.size(),0 );
+
+
+    string newRawJson = json.GetJSONString(true);
+
+    ok = json2.Parse(newRawJson.c_str(), error);
+
+    ASSERT_TRUE(ok);
+
+    const vector<string>& v31 = json2.Get<StringArrayField1>();
+    const vector<string>& v32 = json2.Get<StringArrayField2>();
+
+    ASSERT_EQ(v31.size(),4 );
+
+    ASSERT_EQ(v31[0],"String 1");
+
+    ASSERT_EQ(v31[1],"String 2");
+
+    ASSERT_EQ(v31[2],"");
+
+    ASSERT_EQ(v31[3],"String 4");
+
+    ASSERT_EQ(v32.size(),0 );
+
+
+    string newRawJson2 = json.GetPrettyJSONString();
+
+    ok = json3.Parse(newRawJson2.c_str(), error);
+
+    ASSERT_TRUE(ok);
+
+    const vector<string>& v21 = json3.Get<StringArrayField1>();
+    const vector<string>& v22 = json3.Get<StringArrayField2>();
+
+    ASSERT_EQ(v21.size(),4 );
+
+    ASSERT_EQ(v21[0],"String 1");
+
+    ASSERT_EQ(v21[1],"String 2");
+
+    ASSERT_EQ(v21[2],"");
+
+    ASSERT_EQ(v21[3],"String 4");
+
+    ASSERT_EQ(v22.size(),0 );
+
+}
+
+TEST(JSONParsing, ParseEmbededStringArray) {
+    std::string rawJson = R"JSON({
+            "Object": {
+                "StringArrayField1": [
+                    "String 1",
+                    "String 2",
+                    "",
+                    "String 4"
+                ],
+                "StringArrayField2": []
+            }
+        }
+    )JSON";
+
+    typedef SimpleParsedJSON<StringArrayField1, StringArrayField2> JSON;
+
+    NewEmbededObject(Object,JSON);
+    SimpleParsedJSON<Object> parent, parent2, parent3;
+
+    std::string error;
+
+    bool ok = parent.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json = parent.Get<Object>();
+
+    const vector<string>& v1 = json.Get<StringArrayField1>();
+    const vector<string>& v2 = json.Get<StringArrayField2>();
+
+    ASSERT_EQ(v1.size(),4 );
+
+    ASSERT_EQ(v1[0],"String 1");
+
+    ASSERT_EQ(v1[1],"String 2");
+
+    ASSERT_EQ(v1[2],"");
+
+    ASSERT_EQ(v1[3],"String 4");
+
+    ASSERT_EQ(v2.size(),0 );
+
+
+    string newRawJson = parent.GetJSONString(true);
+
+    ok = parent2.Parse(newRawJson.c_str(), error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json2 = parent2.Get<Object>();
+
+    const vector<string>& v21 = json2.Get<StringArrayField1>();
+    const vector<string>& v22 = json2.Get<StringArrayField2>();
+
+    ASSERT_EQ(v21.size(),4 );
+
+    ASSERT_EQ(v21[0],"String 1");
+
+    ASSERT_EQ(v21[1],"String 2");
+
+    ASSERT_EQ(v21[2],"");
+
+    ASSERT_EQ(v21[3],"String 4");
+
+    ASSERT_EQ(v22.size(),0 );
+
+
+    string newRawJson2 = parent.GetPrettyJSONString();
+
+    ok = parent3.Parse(newRawJson2.c_str(), error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json3 = parent3.Get<Object>();
+
+    const vector<string>& v31 = json3.Get<StringArrayField1>();
+    const vector<string>& v32 = json3.Get<StringArrayField2>();
+
+    ASSERT_EQ(v31.size(),4 );
+
+    ASSERT_EQ(v31[0],"String 1");
+
+    ASSERT_EQ(v31[1],"String 2");
+
+    ASSERT_EQ(v31[2],"");
+
+    ASSERT_EQ(v31[3],"String 4");
+
+    ASSERT_EQ(v32.size(),0 );
+
+}
+
+TEST(JSONParsing, ParseEmbededString) {
+    std::string rawJson = R"JSON(
+    {
+        "Object" : {
+            "Field1": "Hello World!",
+            "Field2": ""
+        }
+    }
+    )JSON";
+
+    typedef SimpleParsedJSON<Field1,Field2> JSON; 
+    NewEmbededObject(Object,JSON);
+    SimpleParsedJSON<Object> parent, parent2, parent3;
+
+
+    std::string error;
+
+    bool ok = parent.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json = parent.Get<Object>();
+
+    ASSERT_EQ(json.Get<Field1>(),"Hello World!");
+
+    ASSERT_EQ(json.Get<Field2>(),"");
+
+    string newRawJson = parent.GetJSONString(true);
+
+    ok = parent2.Parse(newRawJson.c_str(), error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json2 = parent2.Get<Object>();
+
+    ASSERT_EQ(json2.Get<Field1>(),"Hello World!");
+
+    ASSERT_EQ(json2.Get<Field2>(),"");
+
+    string newRawJson2 = parent.GetPrettyJSONString();
+
+    ok = parent3.Parse(newRawJson2.c_str(), error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json3 = parent3.Get<Object>();
+
+    ASSERT_EQ(json3.Get<Field1>(),"Hello World!");
+
+    ASSERT_EQ(json3.Get<Field2>(),"");
+}
+
+TEST(JSONParsing, ParseEmbededArrayString) {
+    std::string rawJson = R"JSON(
+    {
+        "Objects": [{
+            "Field1": "Hello World!",
+            "Field2": ""
+        }, {
+            "Field1": "Another string",
+            "Field2": "Not a blank string"
+        }]
+    }
+    )JSON";
+
+    typedef SimpleParsedJSON<Field1,Field2> JSON; 
+    NewObjectArray(Objects,JSON);
+    SimpleParsedJSON<Objects> parent, parent2, parent3;
+
+    std::string error;
+
+    bool ok = parent.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json = *parent.Get<Objects>()[0];
+    JSON& bjson = *parent.Get<Objects>()[1];
+
+    ASSERT_EQ(json.Get<Field1>(),"Hello World!");
+
+    ASSERT_EQ(json.Get<Field2>(),"");
+
+    ASSERT_EQ(bjson.Get<Field1>(),"Another string");
+
+    ASSERT_EQ(bjson.Get<Field2>(),"Not a blank string");
+
+    string newRawJson = parent.GetJSONString(true);
+
+    ok = parent2.Parse(newRawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json2 = *parent.Get<Objects>()[0];
+    JSON& bjson2 = *parent.Get<Objects>()[1];
+
+    ASSERT_EQ(json2.Get<Field1>(),"Hello World!");
+
+    ASSERT_EQ(json2.Get<Field2>(),"");
+
+    ASSERT_EQ(bjson2.Get<Field1>(),"Another string");
+
+    ASSERT_EQ(bjson2.Get<Field2>(),"Not a blank string");
+
+    string newRawJson2 = parent.GetPrettyJSONString();
+
+    ok = parent3.Parse(newRawJson2.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& json3 = *parent.Get<Objects>()[0];
+    JSON& bjson3 = *parent.Get<Objects>()[1];
+
+    ASSERT_EQ(json3.Get<Field1>(),"Hello World!");
+
+    ASSERT_EQ(json3.Get<Field2>(),"");
+
+    ASSERT_EQ(bjson3.Get<Field1>(),"Another string");
+
+    ASSERT_EQ(bjson3.Get<Field2>(),"Not a blank string");
+
+}
+
 TEST(JSONParsing,ParseInt) {
 
     SimpleParsedJSON<
@@ -98,7 +394,7 @@ TEST(JSONParsing,ParseInt) {
         "IntField1":     500,
         "IntField2":    -500,
         "DoubleField1":  500,
-        "DoubleField2": -500,
+        "DoubleField2": -500
     }
     )JSON";
 
@@ -230,7 +526,7 @@ TEST(JSONParsing,ParseEmbededInt) {
             "IntField1":     500,
             "IntField2":    -500,
             "DoubleField1":  500,
-            "DoubleField2": -500,
+            "DoubleField2": -500
         }
     }
     )JSON";
@@ -384,7 +680,7 @@ TEST(JSONParsing,ParseI64) {
         "I64Field3": 5147483658,
         "I64Field4": -2147483658,
         "DoubleField1": 5147483658,
-        "DoubleField2": -2147483658,
+        "DoubleField2": -2147483658
     }
     )JSON";
 
@@ -531,7 +827,7 @@ TEST(JSONParsing,ParseEmbededI64) {
             "I64Field3": 5147483658,
             "I64Field4": -2147483658,
             "DoubleField1": 5147483658,
-            "DoubleField2": -2147483658,
+            "DoubleField2": -2147483658
         }
     }
     )JSON";
@@ -964,7 +1260,7 @@ TEST(JSONParsing,ParseEmbededArrayUI64) {
 TEST(JSONParsing,ParseUnsigned) {
     std::string rawJson = R"JSON( 
     {
-        "UIntField1": 500,
+        "UIntField1": 500
     }
     )JSON";
 
@@ -1193,7 +1489,7 @@ TEST(JSONParsing,ParseDoubleArray) {
 TEST(JSONParsing,ParseEmbededUnsigned) {
     std::string rawJson = R"JSON({
         "Object": {
-            "UIntField1": 500,
+            "UIntField1": 500
         }
     }
     )JSON";
@@ -1330,7 +1626,7 @@ TEST(JSONParsing,ExtraField) {
     std::string rawJson = R"JSON( 
     {
         "Field1": "Hello World!",
-        "Field2": "Hello World!",
+        "Field2": "Hello World!"
     }
     )JSON";
 
@@ -1576,7 +1872,7 @@ TEST(JSONParsing,ParseDouble) {
         "DoubleField2": 5,
         "DoubleField3": -5,
         "DoubleField4": 2000000000000,
-        "DoubleField5": -2000000000001,
+        "DoubleField5": -2000000000001
     }
     )JSON";
 
@@ -1636,7 +1932,7 @@ TEST(JSONParsing,ParseEmbededDouble) {
         "Object": {
             "DoubleField1": 5.5,
             "DoubleField2": 5,
-            "DoubleField3": -5,
+            "DoubleField3": -5
         }
     }
     )JSON";
@@ -2221,7 +2517,7 @@ R"RAW({
     "Field2": null,
     "DoubleField2": null,
     "DoubleArrayField2": null,
-    "BoolField2": null,
+    "BoolField2": null
 })RAW";
     string expOutput =
 R"RAW({
@@ -2609,3 +2905,4 @@ R"RAW({
     ASSERT_EQ(output , allNull);
 
 }
+
