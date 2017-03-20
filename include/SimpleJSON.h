@@ -283,6 +283,15 @@ public:
      *                    Run the Parser
      **************************************************************************/
 
+    class IParser {
+    public:
+        virtual ~IParser() {}
+        struct ParseError {
+            std::string msg;
+        };
+        virtual void Parse(const char* json, SimpleParsedJSON<Fields...>& spj) = 0;
+    };
+
     /**
      * Parse the json string provided and store the fields in our members. Raise
      * an error if unknown fields are provided, or if known fields are of the
@@ -301,6 +310,7 @@ public:
      * @returns TRUE if all (and only) our fields were found in the JSON
      */
     bool Parse(const char* json, std::string& errMsg);
+    bool Parse(const char* json, std::string& errMsg, IParser& parser);
 
     /**************************************************************************
      *                    Access Results

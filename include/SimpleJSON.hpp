@@ -10,6 +10,7 @@
 
 #include <limits>
 #include <type_traits>
+#include <rapidjson/error/en.h>
 
 /*****************************************************************************
  *                          JSON Builder
@@ -124,7 +125,7 @@ void FieldArrayBase<TYPE>::Clear() {
 template <typename TYPE>
 bool FieldArrayBase<TYPE>::StartArray() {
     if(inArray) {
-        throw spJSON::ParseError();
+        throw spJSON::WrongTypeError{this->Name()};
     } else {
         inArray = true;
     }
@@ -746,12 +747,27 @@ SimpleParsedJSON<Fields...>::SimpleParsedJSON()
 
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Parse(const char* json, std::string& errMsg) {
+    class RapidJSONParser: public IParser {
+        virtual void Parse(const char* json, SimpleParsedJSON<Fields...>& spj) {
+            bool ok = true;
+            rapidjson::StringStream ss(json);
+            rapidjson::Reader reader;
+            rapidjson::ParseResult result = reader.Parse(ss,spj);
+            if (result.IsError()) {
+                throw typename IParser::ParseError{rapidjson::GetParseError_En(result.Code())};
+            }
+        }
+    } rjp;
+
+    return Parse(json,errMsg,rjp);
+}
+
+template <class...Fields>
+bool SimpleParsedJSON<Fields...>::Parse(const char* json, std::string& errMsg, IParser& parser) {
     bool ok = false;
-    rapidjson::StringStream ss(json);
-    rapidjson::Reader reader;
 
     try {
-        reader.Parse(ss,*this);
+        parser.Parse(json,*this);
         ok = true;
     } catch (spJSON::UnknownFieldError extraField) {
         errMsg = "Unknown extra field: " + extraField.field;
@@ -761,6 +777,8 @@ bool SimpleParsedJSON<Fields...>::Parse(const char* json, std::string& errMsg) {
         errMsg = "Invalid JSON!";
     } catch (spJSON::WrongTypeError& type) {
         errMsg = "Invalid type for field: " + type.field;
+    } catch (typename IParser::ParseError& error) {
+        errMsg = "Failed to parse JSON: " + error.msg;
     }
 
     return ok;
