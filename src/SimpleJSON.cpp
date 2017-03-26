@@ -110,47 +110,97 @@ private:
     public:
         virtual ~IFieldType() {}
 
-        virtual string GetDefinition(const std::string& indent, const std::string &name) = 0;
+        virtual string GetDefinition() = 0;
     };
 
     class BaseField: public IFieldType {
     public:
-        BaseField(const std::string& type) : type(type) { }
+        BaseField(
+                const std::string& type,
+                const std::string& name,
+                const std::string& indent)
+                : type(type)
+                , name(name)
+                , indent(indent) { }
 
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
+        virtual string GetDefinition() {
             std::string def =  indent + type + "(" + name + ");";
             return def;
         }
 
-        static std::unique_ptr<BaseField> I64Type(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewI64ArrayField" : "NewI64Field");
+        static std::unique_ptr<BaseField> I64Type(
+                bool isArray,
+                const std::string& name,
+                const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewI64ArrayField" : "NewI64Field",
+                    name,
+                    indent);
         }
 
-        static std::unique_ptr<BaseField> UI64Type(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewUI64ArrayField" : "NewUI64Field");
+        static std::unique_ptr<BaseField> UI64Type(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewUI64ArrayField" : "NewUI64Field",
+                    name,
+                    indent);
         }
 
-        static std::unique_ptr<BaseField> IntType(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewIntArrayField" : "NewIntField");
+        static std::unique_ptr<BaseField> IntType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewIntArrayField" : "NewIntField",
+                    name,
+                    indent);
         }
 
-        static std::unique_ptr<BaseField> UIntType(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewUIntArrayField" : "NewUIntField");
+        static std::unique_ptr<BaseField> UIntType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewUIntArrayField" : "NewUIntField",
+                    name,
+                    indent);
         }
 
-        static std::unique_ptr<BaseField> BoolType(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewBoolArrayField" : "NewBoolField");
+        static std::unique_ptr<BaseField> BoolType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewBoolArrayField" : "NewBoolField",
+                    name,
+                    indent);
         }
 
-        static std::unique_ptr<BaseField> DoubleType(bool isArray) {
-            return std::make_unique<BaseField>(isArray ? "NewDoubleArrayField" : "NewDoubleField");
+        static std::unique_ptr<BaseField> DoubleType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray ? "NewDoubleArrayField" : "NewDoubleField",
+                    name,
+                    indent);
         }
 
-        static std::unique_ptr<BaseField> StringType(bool isArray) {
-            return std::make_unique<BaseField>(isArray ? "NewStringArrayField" : "NewStringField");
+        static std::unique_ptr<BaseField> StringType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray ? "NewStringArrayField" : "NewStringField",
+                    name,
+                    indent);
         }
     private:
         std::string type;
+        std::string name;
+        std::string indent;
     };
 
     class ObjectField: public IFieldType {
@@ -168,7 +218,7 @@ private:
                         indent + "    ");
         }
 
-        virtual string GetDefinition(const std::string &indent, const std::string& dummyName) {
+        virtual string GetDefinition() {
             string jsonName = name + "_fields::JSON";
 
             stringstream buf;
@@ -271,7 +321,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::StringType(active.isArray);
+            active.current->second = BaseField::StringType(active.isArray, active.current->first, active.indent);
 
         }
         return true;
@@ -298,7 +348,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::DoubleType(active.isArray);
+            active.current->second = BaseField::DoubleType(active.isArray, active.current->first, active.indent);
 
         }
         return true;
@@ -325,7 +375,7 @@ public:
         }
 
         if (not ignoreField) {
-            active.current->second = BaseField::IntType(active.isArray);
+            active.current->second = BaseField::IntType(active.isArray, active.current->first, active.indent);
         }
         return true;
     }
@@ -350,7 +400,7 @@ public:
         }
 
         if (not ignoreField) {
-            active.current->second = BaseField::I64Type(active.isArray);
+            active.current->second = BaseField::I64Type(active.isArray, active.current->first, active.indent);
         }
         return true;
     }
@@ -376,7 +426,7 @@ public:
         }
 
         if (not ignoreField) {
-            active.current->second = BaseField::UIntType(active.isArray);
+            active.current->second = BaseField::UIntType(active.isArray, active.current->first, active.indent);
         }
 
         return true;
@@ -403,7 +453,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::UI64Type(active.isArray);
+            active.current->second = BaseField::UI64Type(active.isArray, active.current->first, active.indent);
         }
 
         return true;
@@ -432,7 +482,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::BoolType(active.isArray);
+            active.current->second = BaseField::BoolType(active.isArray, active.current->first, active.indent);
 
         }
         return true;
@@ -593,7 +643,7 @@ public:
         }
         auto it = keys.begin();
         while (it != keys.end()) {
-            result << it->second->GetDefinition(indent, it->first) << endl;
+            result << it->second->GetDefinition() << endl;
 
             fields << indent << "    " << it->first;
 
