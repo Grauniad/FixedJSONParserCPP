@@ -571,45 +571,40 @@ public:
     }
 
     bool EndObject(rapidjson::SizeType memberCount) {
-        if (childObject.get()) {
-            if (!IgnoreField()) {
-                if (childObject->ObjectDefn().childObject.get()) {
-                    LOG_FROM(
-                            LOG_VERY_VERBOSE,
-                            "SimpleParsedJSON_Generator::EndObject",
-                            "Forwarding to child object...");
-                    childObject->ObjectDefn().EndObject(memberCount);
-                } else if (!childObject->ObjectDefn().IgnoreField()) {
-                    current->second = std::move(childObject);
-
-                    SLOG_FROM(
-                            LOG_VERY_VERBOSE,
-                            "SimpleParsedJSON_Generator::EndObject",
-                            "Finished processing child object, " << current->first);
-
-                } else {
-                    SLOG_FROM(
-                            LOG_VERY_VERBOSE,
-                            "SimpleParsedJSON_Generator::EndObject",
-                            "Ignored end of child object, whilst processing" << current->first);
-                }
-            } else {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::EndObject",
-                        "Skipping non first item for array "
-                                << namespaceName << "::" << current->first)
-            }
-        } else if (started) {
-            LOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::EndObject",
-                    "Terminated the object itself");
-        } else {
+        if (started == false) {
             SLOG_FROM(
                     LOG_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "End of non-existent object!");
+        }
+        else if (childObject.get() == nullptr) {
+            LOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Terminated the object itself");
+        } else if (IgnoreField()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Skipping non first item for array "
+                            << namespaceName << "::" << current->first)
+        } else if (childObject->ObjectDefn().childObject.get()) {
+            LOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Forwarding to child object...");
+            childObject->ObjectDefn().EndObject(memberCount);
+        } else if (childObject->ObjectDefn().IgnoreField()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Ignored end of child object, whilst processing" << current->first);
+        } else {
+            current->second = std::move(childObject);
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Finished processing child object, " << current->first);
         }
         return true;
     }
