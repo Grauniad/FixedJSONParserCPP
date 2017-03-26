@@ -281,10 +281,6 @@ public:
         }
     }
 
-    bool IgnoreField() {
-        return (isArray && KnownType());
-    }
-
     /*
      * Check if the parser is currently parsing an object that is a child of this
      * parsed object.
@@ -311,10 +307,20 @@ public:
 
     bool Key(const char *str, rapidjson::SizeType length, bool copy) {
         auto &active = ActiveObject();
-        if (!active.IgnoreField()) {
+        if (active.ParsingChildObject()) {
+            // The parser is below the current "active" level, which means
+            // we are not interested in the field...
+            //
+            // (For this to have happened we must have actively decided to
+            //  ignore a descent. This may happen for example when parsing
+            //  arrays of objects).
+        } else {
             string field = str;
-            active.keys[field] = unique_ptr<IFieldType>(nullptr);
-            active.current = active.keys.find(field);
+            auto it = active.keys.find(field);
+            if (it == active.keys.end()) {
+                it = active.keys.emplace(field, unique_ptr<IFieldType>(nullptr)).first;
+            }
+            active.current = it;
         }
 
         return true;
