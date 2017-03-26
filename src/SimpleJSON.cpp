@@ -104,15 +104,18 @@ bool FieldBase::Null() {
 
 class SimpleParsedJSON_Generator {
 public:
+
     SimpleParsedJSON_Generator(
         const std::string _namespaceName = "",
-        const std::string _indent = "    ") 
+        const std::string _indent = "    ",
+        spJSON::GeneratorOptions opts = spJSON::GeneratorOptions())
             : started(false),
               isArray(false),
               arrayTyped(false),
               childObject(nullptr),
               indent(_indent),
-              namespaceName(_namespaceName)
+              namespaceName(_namespaceName),
+              options(opts)
     {
         int nsIndentSize = indent.length() -4;
         if (nsIndentSize < 0 ) {
@@ -472,7 +475,15 @@ public:
     }
 
     bool Null() {
-        throw "TODO!";
+        if (options.ignoreNull == true) {
+            auto& active = ActiveObject();
+            if (active.current->second == "") {
+                active.keys.erase(active.current);
+            }
+            return true;
+        } else {
+            throw "TODO!";
+        }
     }
 
     bool RawNumber(const char* str, size_t len, bool copy) {
@@ -520,11 +531,16 @@ private:
     std::string indent;
     std::string nsIndent;
     std::string namespaceName;
+    spJSON::GeneratorOptions options;
 };
 
 
-std::string spJSON::Gen(const string& className, const string& exampleJson) {
-    SimpleParsedJSON_Generator gen;
+std::string spJSON::Gen(
+        const string& className,
+        const string& exampleJson,
+        spJSON::GeneratorOptions options )
+{
+    SimpleParsedJSON_Generator gen("", "    ", options);
 
     rapidjson::StringStream ss(exampleJson.c_str());
     rapidjson::Reader reader;

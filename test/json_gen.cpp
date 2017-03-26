@@ -25,6 +25,26 @@ TEST(JSONParsing, SingleStringGen) {
     ASSERT_EQ(output , expected);
 }
 
+TEST(JSONParsing, IgnoreNull) {
+    string input = R"RAW(
+       {
+           "stringField1": "Hello World!",
+           "dummyField": null
+       }
+    )RAW";
+    string expected =
+            "    NewStringField(stringField1);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        stringField1\n"
+                    "    > OutputJSON;\n";
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
 TEST(JSONParsing, MultipleStringGen) {
     string input = R"RAW(
        {
@@ -126,12 +146,35 @@ TEST(JSONParsing, IntArray) {
        }
     )RAW";
     string expected =
+            "    NewIntArrayField(ids);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        ids\n"
+                    "    > OutputJSON;\n";
+    string output = spJSON::Gen("OutputJSON", input);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONParsing, IntArrayIgnoreNull) {
+    string input = R"RAW(
+       {
+          "ids": [
+              -5082,
+              500,
+              null
+          ]
+       }
+    )RAW";
+    string expected =
 "    NewIntArrayField(ids);\n"
 "\n"
 "    typedef SimpleParsedJSON<\n"
 "        ids\n"
 "    > OutputJSON;\n";
-    string output = spJSON::Gen("OutputJSON", input);
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
 
     ASSERT_EQ(output , expected);
 }
@@ -285,7 +328,8 @@ TEST(JSONParsing, SingleEmbededObject) {
           "id": 505874924095815700,
           "metadata": {
             "result_type": "recent",
-            "iso_language_code": "ja"
+            "iso_language_code": "ja",
+            "dummy": null
           },
           "created_at": "Sun Aug 31 00:29:15 +0000 2014"
        }
@@ -310,7 +354,9 @@ TEST(JSONParsing, SingleEmbededObject) {
 "        id,\n"
 "        metadata\n"
 "    > OutputJSON;\n";
-    string output = spJSON::Gen("OutputJSON", input);
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
 
     ASSERT_EQ(output , expected);
 }
@@ -326,7 +372,8 @@ TEST(JSONParsing, DoublyEmbededObject) {
                 "result_type": "recent",
                 "alias_ids": [1,2],
                 "iso_language_code": "ja",
-                "aliases": ["alias1", "alias2"]
+                "aliases": ["alias1", "alias2"],
+                "dummy": null
             }
           },
           "created_at": "Sun Aug 31 00:29:15 +0000 2014"
@@ -368,7 +415,10 @@ TEST(JSONParsing, DoublyEmbededObject) {
 "        id,\n"
 "        metadata\n"
 "    > OutputJSON;\n";
-    string output = spJSON::Gen("OutputJSON", input);
+
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
 
     ASSERT_EQ(output , expected);
 }
