@@ -393,11 +393,11 @@ public:
                     "SimpleParsedJSON_Generator::StartObject",
                     "Starting initial object");
             started = true;
-        } else if (IgnoreField()) {
+        } else if (KnownType()) {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::StartObject",
-                    "Skipping non first item for array "
+                    "Skipping object, we already know the type: "
                             << namespaceName << "::" << current->first)
         } else if (childObject.get()) {
             LOG_FROM(
