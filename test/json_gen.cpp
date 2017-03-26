@@ -640,3 +640,67 @@ R"RAW(
 
     ASSERT_EQ(output , expected);
 }
+
+TEST(JSONGen, ArrayOfObjects2WithNulls) {
+    string input = R"RAW(
+       {
+            "OuterObjects": [
+                null,
+                {
+                    "Objects": [
+                        null,
+                        {
+                            "IntField1": 1
+                        },
+                        {
+                            "IntField1": 2
+                        },
+                        null
+                    ]
+                },
+                {
+                    "Objects": [
+                        {
+                            "IntField1": 3
+                        },
+                        {
+                            "IntField1": 4
+                        },
+                        {
+                            "IntField1": 5
+                        },
+                        null
+                    ]
+                }
+            ]
+       }
+    )RAW";
+    string expected =
+            R"RAW(
+    namespace OuterObjects_fields {
+
+        namespace Objects_fields {
+            NewUIntField(IntField1);
+
+            typedef SimpleParsedJSON<
+                IntField1
+            > JSON;
+        }
+        NewObjectArray(Objects, Objects_fields::JSON);
+
+        typedef SimpleParsedJSON<
+            Objects
+        > JSON;
+    }
+    NewObjectArray(OuterObjects, OuterObjects_fields::JSON);
+
+    typedef SimpleParsedJSON<
+        OuterObjects
+    > OutputJSON;
+)RAW";
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
