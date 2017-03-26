@@ -536,36 +536,32 @@ public:
     }
 
     bool StartObject() {
-        if (started) {
-            if (!IgnoreField()) {
-                if (childObject.get()) {
-                    LOG_FROM(
-                            LOG_VERY_VERBOSE,
-                            "SimpleParsedJSON_Generator::StartObject",
-                            "forwarding to existing child object...");
-                    childObject->ObjectDefn().StartObject();
-                } else {
-                    SLOG_FROM(
-                            LOG_VERY_VERBOSE,
-                            "SimpleParsedJSON_Generator::StartObject",
-                            "Starting a new child object: " << current->first);
-
-                    childObject = ObjectField::ObjectType(isArray,current->first,indent);
-                    childObject->ObjectDefn().StartObject();
-                }
-            } else {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::StartObject",
-                        "Skipping non first item for array "
-                                << namespaceName << "::" << current->first)
-            }
-        } else {
+        if (started == false) {
             LOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::StartObject",
                     "Starting initial object");
             started = true;
+        } else if (IgnoreField()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "Skipping non first item for array "
+                            << namespaceName << "::" << current->first)
+        } else if (childObject.get()) {
+            LOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "forwarding to existing child object...");
+            childObject->ObjectDefn().StartObject();
+        } else {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "Starting a new child object: " << current->first);
+
+            childObject = ObjectField::ObjectType(isArray,current->first,indent);
+            childObject->ObjectDefn().StartObject();
         }
         return true;
     }
