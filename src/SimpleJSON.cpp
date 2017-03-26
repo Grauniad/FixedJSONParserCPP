@@ -375,46 +375,12 @@ public:
 
     virtual bool StartArray() {
         auto &active = ActiveObject();
-
-        if (!active.IgnoreField()) {
-            active.isArray = true;
-
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::StartArray",
-                    "Starting new array " << active.namespaceName << "::" << active.current->first);
-        } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::StartArray",
-                    "Ignoring new array " << active.namespaceName << "::" << active.current->first);
-        }
-
-
+        active.isArray = true;
         return true;
     }
 
     virtual bool EndArray(rapidjson::SizeType elementCount) {
         auto &active = ActiveObject();
-
-        if (active.IgnoreField()) {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::EndArray",
-                    "Ignoring end of duplicate array " << active.namespaceName << "::" << active.current->first);
-        } else if (!active.KnownType()) {
-            SLOG_FROM(
-                    LOG_VERBOSE,
-                    "SimpleParsedJSON_Generator::EndArray",
-                    "Array " << active.namespaceName << "::" << active.current->first <<
-                             " finished, was NOT typed successfuly");
-        } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::EndArray",
-                    "Array " << active.namespaceName << "::" << active.current->first <<
-                             " finished, was typed successfuly");
-        }
         active.isArray = false;
 
         return true;
