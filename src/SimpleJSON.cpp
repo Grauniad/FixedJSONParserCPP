@@ -151,6 +151,7 @@ public:
 
     bool String(const char *str, rapidjson::SizeType length, bool copy) {
         auto &active = ActiveObject();
+        bool ignored = true;
         if (active.isArray) {
             if (!active.arrayTyped) {
                 SLOG_FROM(
@@ -158,9 +159,7 @@ public:
                         "SimpleParsedJSON_Generator::String",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a String.");
 
-                active.current->second = stringArrayType.GetDefinition(
-                        active.indent,
-                        active.current->first);
+                ignored = false;
                 active.arrayTyped = true;
             }
         } else {
@@ -168,15 +167,21 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::String",
                     "Field " << active.namespaceName << "::" << active.current->first << " is a String.");
-            active.current->second = stringType.GetDefinition(
+            ignored = false;
+        }
+
+        if (not ignored) {
+            active.current->second = BaseField::StringType(active.isArray)->GetDefinition(
                     active.indent,
                     active.current->first);
+
         }
         return true;
     }
 
     bool Double(double d) {
         auto &active = ActiveObject();
+        bool ignored = true;
         if (active.isArray) {
             if (!active.arrayTyped) {
                 SLOG_FROM(
@@ -184,10 +189,7 @@ public:
                         "SimpleParsedJSON_Generator::Double",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Double.");
 
-                active.current->second = doubleArrayType.GetDefinition(
-                        active.indent,
-                        active.current->first);
-
+                ignored = false;
                 active.arrayTyped = true;
             }
         } else {
@@ -195,15 +197,21 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::Double",
                     "Field " << active.namespaceName << "::" << active.current->first << " is a Double.");
-            active.current->second = doubleType.GetDefinition(
+            ignored = false;
+        }
+
+        if (not ignored) {
+            active.current->second = BaseField::DoubleType(active.isArray)->GetDefinition(
                     active.indent,
                     active.current->first);
+
         }
         return true;
     }
 
     bool Int(int i) {
         auto &active = ActiveObject();
+        bool ignoreField = true;
         if (active.isArray) {
             if (!active.arrayTyped) {
                 SLOG_FROM(
@@ -211,9 +219,7 @@ public:
                         "SimpleParsedJSON_Generator::Int",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Int.");
 
-                active.current->second = intArrayType.GetDefinition(
-                        active.indent,
-                        active.current->first);
+                ignoreField = false;
                 active.arrayTyped = true;
             }
         } else {
@@ -221,7 +227,11 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::Int",
                     "Field " << active.namespaceName << "::" << active.current->first << " is a Int.");
-            active.current->second = intType.GetDefinition(
+            ignoreField = false;
+        }
+
+        if (not ignoreField) {
+            active.current->second = BaseField::IntType(active.isArray)->GetDefinition(
                     active.indent,
                     active.current->first);
         }
@@ -229,6 +239,7 @@ public:
     }
 
     bool Int64(int64_t i) {
+        bool ignoreField = true;
         auto &active = ActiveObject();
         if (active.isArray) {
             if (!active.arrayTyped) {
@@ -236,18 +247,19 @@ public:
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::Int64",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Int64.");
-
-                active.current->second = int64ArrayType.GetDefinition(
-                        active.indent,
-                        active.current->first);
                 active.arrayTyped = true;
+                ignoreField = false;
             }
         } else {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::Int64",
                     "Field " << active.namespaceName << "::" << active.current->first << " is a Int64.");
-            active.current->second = int64Type.GetDefinition(
+            ignoreField = false;
+        }
+
+        if (not ignoreField) {
+            active.current->second = BaseField::I64Type(active.isArray)->GetDefinition(
                     active.indent,
                     active.current->first);
         }
@@ -256,6 +268,7 @@ public:
 
     bool Uint(unsigned u) {
         auto &active = ActiveObject();
+        bool ignoreField = true;
         if (active.isArray) {
             if (!active.arrayTyped) {
                 SLOG_FROM(
@@ -263,26 +276,29 @@ public:
                         "SimpleParsedJSON_Generator::Uint",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Uint.");
 
-                active.current->second = uintArrayType.GetDefinition(
-                        active.indent,
-                        active.current->first);
-
                 active.arrayTyped = true;
+                ignoreField = false;
             }
         } else {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::Uint",
                     "Field " << active.namespaceName << "::" << active.current->first << " is a Uint.");
-            active.current->second = uintType.GetDefinition(
+            ignoreField = false;
+        }
+
+        if (not ignoreField) {
+            active.current->second = BaseField::UIntType(active.isArray)->GetDefinition(
                     active.indent,
                     active.current->first);
         }
+
         return true;
     }
 
     bool Uint64(uint64_t u) {
         auto &active = ActiveObject();
+        bool ignored = true;
         if (active.isArray) {
             if (!active.arrayTyped) {
                 SLOG_FROM(
@@ -290,25 +306,29 @@ public:
                         "SimpleParsedJSON_Generator::Uint64",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Uint64.");
 
-                active.current->second = uint64ArrayType.GetDefinition(
-                        active.indent,
-                        active.current->first);
                 active.arrayTyped = true;
+                ignored = false;
             }
         } else {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::Uint64",
                     "Field " << active.namespaceName << "::" << active.current->first << " is a Uint64.");
-            active.current->second = uint64Type.GetDefinition(
+            ignored = false;
+        }
+
+        if (not ignored) {
+            active.current->second = BaseField::UI64Type(active.isArray)->GetDefinition(
                     active.indent,
                     active.current->first);
         }
+
         return true;
     }
 
     bool Bool(bool b) {
         auto &active = ActiveObject();
+        bool ignored = true;
         if (active.isArray) {
             if (!active.arrayTyped) {
                 SLOG_FROM(
@@ -316,10 +336,8 @@ public:
                         "SimpleParsedJSON_Generator::Bool",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a bool.");
 
-                active.current->second = boolArrayType.GetDefinition(
-                        active.indent,
-                        active.current->first);
                 active.arrayTyped = true;
+                ignored = false;
 
             }
         } else {
@@ -327,10 +345,15 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::Bool",
                     "Field " << active.namespaceName << "::" << active.current->first << " is a bool.");
+            ignored = false;
 
-            active.current->second = boolType.GetDefinition(
+        }
+
+        if (not ignored) {
+            active.current->second = BaseField::BoolType(active.isArray)->GetDefinition(
                     active.indent,
                     active.current->first);
+
         }
         return true;
     }
@@ -556,65 +579,37 @@ private:
             std::string def =  indent + type + "(" + name + ");";
             return def;
         }
+
+        static std::unique_ptr<BaseField> I64Type(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewI64ArrayField" : "NewI64Field");
+        }
+
+        static std::unique_ptr<BaseField> UI64Type(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewUI64ArrayField" : "NewUI64Field");
+        }
+
+        static std::unique_ptr<BaseField> IntType(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewIntArrayField" : "NewIntField");
+        }
+
+        static std::unique_ptr<BaseField> UIntType(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewUIntArrayField" : "NewUIntField");
+        }
+
+        static std::unique_ptr<BaseField> BoolType(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewBoolArrayField" : "NewBoolField");
+        }
+
+        static std::unique_ptr<BaseField> DoubleType(bool isArray) {
+            return std::make_unique<BaseField>(isArray ? "NewDoubleArrayField" : "NewDoubleField");
+        }
+
+        static std::unique_ptr<BaseField> StringType(bool isArray) {
+            return std::make_unique<BaseField>(isArray ? "NewStringArrayField" : "NewStringField");
+        }
     private:
         std::string type;
     };
-
-    struct Int64Field: public BaseField {
-        Int64Field(): BaseField("NewI64Field") {}
-    } int64Type;
-
-    struct Int64ArrayField: public BaseField {
-        Int64ArrayField(): BaseField("NewI64ArrayField") {}
-    } int64ArrayType;
-
-    struct IntField: public BaseField {
-        IntField(): BaseField("NewIntField") {}
-    } intType;
-
-    struct IntArrayField: public BaseField {
-        IntArrayField(): BaseField("NewIntArrayField") {}
-    } intArrayType;
-
-    struct UInt64Field: public BaseField {
-        UInt64Field(): BaseField("NewUI64Field") {}
-    } uint64Type;
-
-    struct UInt64ArrayField: public BaseField {
-        UInt64ArrayField(): BaseField("NewUI64ArrayField") {}
-    } uint64ArrayType;
-
-    struct UIntField: public BaseField {
-        UIntField(): BaseField("NewUIntField") {}
-    } uintType;
-
-    struct UIntArrayField: public BaseField {
-        UIntArrayField(): BaseField("NewUIntArrayField") {}
-    } uintArrayType;
-
-    struct BoolField: public BaseField {
-        BoolField(): BaseField("NewBoolField") {}
-    } boolType;
-
-    struct BoolArrayField: public BaseField {
-        BoolArrayField(): BaseField("NewBoolArrayField") {}
-    } boolArrayType;
-
-    struct DoubleField: public BaseField {
-        DoubleField(): BaseField("NewDoubleField") {}
-    } doubleType;
-
-    struct DoubleArrayField: public BaseField {
-        DoubleArrayField(): BaseField("NewDoubleArrayField") {}
-    } doubleArrayType;
-
-    struct StringField: public BaseField {
-        StringField(): BaseField("NewStringField") {}
-    } stringType;
-
-    struct StringArrayField: public BaseField {
-        StringArrayField(): BaseField("NewStringArrayField") {}
-    } stringArrayType;
 
     typedef std::map<std::string,std::string> Keys;
     Keys keys;
