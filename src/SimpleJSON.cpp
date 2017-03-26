@@ -285,6 +285,26 @@ public:
         return (isArray && KnownType());
     }
 
+    /*
+     * Check if the parser is currently parsing an object that is a child of this
+     * parsed object.
+     *
+     * NOTE: This does NOT guarentee that childObject is not null, since we may
+     *       be ignoring the object.
+     */
+    bool ParsingChildObject() {
+        bool parserIsBelowUs = false;
+        if (childObject.get()) {
+            // Yup - directly in an object below us.
+            parserIsBelowUs = true;
+        } else if ( isArray) {
+            // Yup - We have an unclosed array, must be below us...
+            parserIsBelowUs = true;
+        }
+
+        return parserIsBelowUs;
+    }
+
     bool KnownType() {
         return (current->second.get() != nullptr);
     }
@@ -429,17 +449,12 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Terminated the object itself");
-        } else if (childObject->ObjectDefn().childObject.get()) {
+        } else if (childObject->ObjectDefn().ParsingChildObject()) {
             LOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Forwarding to child object...");
             childObject->ObjectDefn().EndObject(memberCount);
-        } else if (childObject->ObjectDefn().IgnoreField()) {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::EndObject",
-                    "Ignored end of child object, whilst processing" << current->first);
         } else if (KnownType()) {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
