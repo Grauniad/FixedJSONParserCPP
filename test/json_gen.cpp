@@ -179,6 +179,71 @@ TEST(JSONParsing, IntArrayIgnoreNull) {
     ASSERT_EQ(output , expected);
 }
 
+TEST(JSONParsing, ArrayIgnoreAllNull) {
+    string input = R"RAW(
+       {
+          "ids": [-5, 10],
+          "ignore": [null]
+          "ignore2": [null, null]
+       }
+    )RAW";
+    string expected =
+            "    NewIntArrayField(ids);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        ids\n"
+                    "    > OutputJSON;\n";
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONParsing, ArrayIgnoreEmpty) {
+    string input = R"RAW(
+       {
+          "ids": [-5, 10],
+          "ignore": [ ]
+       }
+    )RAW";
+    string expected =
+            "    NewIntArrayField(ids);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        ids\n"
+                    "    > OutputJSON;\n";
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONParsing, IntArrayIgnoreNullFirst) {
+    string input = R"RAW(
+       {
+          "ids": [
+              null,
+              -5082,
+              500,
+              null
+          ]
+       }
+    )RAW";
+    string expected =
+            "    NewIntArrayField(ids);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        ids\n"
+                    "    > OutputJSON;\n";
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
 TEST(JSONParsing, I64Array) {
     string input = R"RAW(
        {

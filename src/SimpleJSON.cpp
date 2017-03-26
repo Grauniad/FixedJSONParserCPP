@@ -144,6 +144,7 @@ public:
             string field = str;
             active.keys[field] = "";
             active.current = active.keys.find(field);
+            active.arrayTyped = false;
         }
 
         return true;
@@ -349,12 +350,18 @@ public:
     virtual bool EndArray(rapidjson::SizeType elementCount) {
         auto& active = ActiveObject();
 
-        if (!active.arrayTyped) {
+        if (active.IgnoreField()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndArray",
+                    "Ignoring end of duplicate array " << active.namespaceName << "::" << active.current->first);
+        } else if (!active.arrayTyped) {
             SLOG_FROM(
                 LOG_VERBOSE,
                 "SimpleParsedJSON_Generator::EndArray",
                 "Array " << active.namespaceName << "::" << active.current->first << 
                 " finished, was NOT typed successfuly");
+            active.keys.erase(active.current);
         } else {
             SLOG_FROM(
                 LOG_VERY_VERBOSE,
@@ -362,9 +369,7 @@ public:
                 "Array " << active.namespaceName << "::" << active.current->first << 
                 " finished, was typed successfuly");
         }
-
         active.isArray = false;
-        active.arrayTyped = false;
 
         return true;
     }
@@ -464,7 +469,6 @@ public:
                 LOG_VERY_VERBOSE,
                 "SimpleParsedJSON_Generator::EndObject",
                 "Terminated the object itself");
-            started = false;
         } else {
             SLOG_FROM(
                 LOG_VERBOSE,
@@ -475,15 +479,16 @@ public:
     }
 
     bool Null() {
-        if (options.ignoreNull == true) {
-            auto& active = ActiveObject();
-            if (active.current->second == "") {
-                active.keys.erase(active.current);
-            }
-            return true;
-        } else {
+        auto& active = ActiveObject();
+        if (options.ignoreNull == false) {
             throw "TODO!";
+        } else if (active.isArray) {
+            // Ignore the null - there might be another type to come...
+        } else {
+            active.keys.erase(active.current);
         }
+
+        return true;
     }
 
     bool RawNumber(const char* str, size_t len, bool copy) {
