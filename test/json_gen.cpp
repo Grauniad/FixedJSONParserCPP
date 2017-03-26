@@ -387,6 +387,48 @@ TEST(JSONParsing, BooleanFields) {
     ASSERT_EQ(output , expected);
 }
 
+TEST(JSONParsing, BooleanArrayFields) {
+    string input = R"RAW(
+       {
+          "truncated": [false, true],
+          "profile_use_background_image": [true]
+       }
+    )RAW";
+    string expected =
+            "    NewBoolArrayField(profile_use_background_image);\n"
+                    "    NewBoolArrayField(truncated);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        profile_use_background_image,\n"
+                    "        truncated\n"
+                    "    > OutputJSON;\n";
+    string output = spJSON::Gen("OutputJSON", input);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONParsing, BooleanArrayFieldsWithNull) {
+    string input = R"RAW(
+       {
+          "truncated": [false, true, null],
+          "profile_use_background_image": [null, true]
+       }
+    )RAW";
+    string expected =
+            "    NewBoolArrayField(profile_use_background_image);\n"
+            "    NewBoolArrayField(truncated);\n"
+            "\n"
+            "    typedef SimpleParsedJSON<\n"
+            "        profile_use_background_image,\n"
+            "        truncated\n"
+            "    > OutputJSON;\n";
+    spJSON::GeneratorOptions options;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
 TEST(JSONParsing, SingleEmbededObject) {
     string input = R"RAW(
        {

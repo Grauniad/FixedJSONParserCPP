@@ -3,6 +3,7 @@
 #include "logger.h"
 
 #include <sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -103,409 +104,415 @@ bool FieldBase::Null() {
  *****************************************************************************/
 
 class SimpleParsedJSON_Generator {
+private:
+
+    class IFieldType {
+    public:
+        virtual ~IFieldType() {}
+
+        virtual string GetDefinition() = 0;
+    };
+
+    class BaseField: public IFieldType {
+    public:
+        BaseField(
+                const std::string& type,
+                const std::string& name,
+                const std::string& indent)
+                : type(type)
+                , name(name)
+                , indent(indent) { }
+
+        virtual string GetDefinition() {
+            std::string def =  indent + type + "(" + name + ");";
+            return def;
+        }
+
+        static std::unique_ptr<BaseField> I64Type(
+                bool isArray,
+                const std::string& name,
+                const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewI64ArrayField" : "NewI64Field",
+                    name,
+                    indent);
+        }
+
+        static std::unique_ptr<BaseField> UI64Type(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewUI64ArrayField" : "NewUI64Field",
+                    name,
+                    indent);
+        }
+
+        static std::unique_ptr<BaseField> IntType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewIntArrayField" : "NewIntField",
+                    name,
+                    indent);
+        }
+
+        static std::unique_ptr<BaseField> UIntType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewUIntArrayField" : "NewUIntField",
+                    name,
+                    indent);
+        }
+
+        static std::unique_ptr<BaseField> BoolType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray? "NewBoolArrayField" : "NewBoolField",
+                    name,
+                    indent);
+        }
+
+        static std::unique_ptr<BaseField> DoubleType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray ? "NewDoubleArrayField" : "NewDoubleField",
+                    name,
+                    indent);
+        }
+
+        static std::unique_ptr<BaseField> StringType(
+            bool isArray,
+            const std::string& name,
+            const std::string& indent) {
+            return std::make_unique<BaseField>(
+                    isArray ? "NewStringArrayField" : "NewStringField",
+                    name,
+                    indent);
+        }
+    private:
+        std::string type;
+        std::string name;
+        std::string indent;
+    };
+
+    class ObjectField: public IFieldType {
+    public:
+        ObjectField(bool isArray,
+                    const std::string& name,
+                    const std::string& indent)
+                : isArray(isArray)
+                , indent(indent)
+                , name(name)
+        {
+            string childNamespace = name + "_fields";
+            objDefn = std::make_unique<SimpleParsedJSON_Generator>(
+                        childNamespace,
+                        indent + "    ");
+        }
+
+        virtual string GetDefinition() {
+            string jsonName = name + "_fields::JSON";
+
+            stringstream buf;
+            buf << endl;
+            buf << objDefn->GetCode("JSON");
+
+            if (isArray) {
+                buf << indent << "NewObjectArray(";
+            } else {
+                buf << indent << "NewEmbededObject(";
+            }
+            buf << name << ", " << jsonName << ");";
+            return buf.str();
+        }
+
+        static std::unique_ptr<ObjectField> ObjectType(
+                bool isArray,
+                const std::string& name,
+                const std::string& indent)
+        {
+            return std::make_unique<ObjectField>(isArray, name, indent);
+        }
+
+        SimpleParsedJSON_Generator& ObjectDefn() {
+            return *objDefn;
+        }
+
+    public:
+        std::string indent;
+        std::string name;
+        bool isArray;
+        unique_ptr<SimpleParsedJSON_Generator> objDefn;
+    };
 public:
 
     SimpleParsedJSON_Generator(
-        const std::string _namespaceName = "",
-        const std::string _indent = "    ",
-        spJSON::GeneratorOptions opts = spJSON::GeneratorOptions())
+            const std::string _namespaceName = "",
+            const std::string _indent = "    ",
+            spJSON::GeneratorOptions opts = spJSON::GeneratorOptions())
             : started(false),
               isArray(false),
-              arrayTyped(false),
               childObject(nullptr),
               indent(_indent),
               namespaceName(_namespaceName),
-              options(opts)
-    {
-        int nsIndentSize = indent.length() -4;
-        if (nsIndentSize < 0 ) {
+              options(opts) {
+        int nsIndentSize = indent.length() - 4;
+        if (nsIndentSize < 0) {
             nsIndentSize = 0;
         }
-        nsIndent = indent.substr(0,nsIndentSize);
+        nsIndent = indent.substr(0, nsIndentSize);
     }
 
-    SimpleParsedJSON_Generator& ActiveObject() {
-        SimpleParsedJSON_Generator* obj = childObject.get();
+    SimpleParsedJSON_Generator &ActiveObject() {
+        ObjectField *obj = childObject.get();
 
         if (obj) {
-            return obj->ActiveObject();
+            return obj->ObjectDefn().ActiveObject();
         } else {
             return *this;
         }
     }
 
-    bool IgnoreField() {
-        return (isArray && arrayTyped);
+    /*
+     * Check if the parser is currently parsing an object that is a child of this
+     * parsed object.
+     *
+     * NOTE: This does NOT guarentee that childObject is not null, since we may
+     *       be ignoring the object.
+     */
+    bool ParsingChildObject() {
+        bool parserIsBelowUs = false;
+        if (childObject.get()) {
+            // Yup - directly in an object below us.
+            parserIsBelowUs = true;
+        } else if ( isArray) {
+            // Yup - We have an unclosed array, must be below us...
+            parserIsBelowUs = true;
+        }
+
+        return parserIsBelowUs;
     }
 
-    bool Key(const char* str, rapidjson::SizeType length, bool copy) {
-        auto& active = ActiveObject();
-        if ( !active.IgnoreField() ) {
+    bool KnownType() {
+        return (current->second.get() != nullptr);
+    }
+
+    bool Key(const char *str, rapidjson::SizeType length, bool copy) {
+        auto &active = ActiveObject();
+        if (active.ParsingChildObject()) {
+            // The parser is below the current "active" level, which means
+            // we are not interested in the field...
+            //
+            // (For this to have happened we must have actively decided to
+            //  ignore a descent. This may happen for example when parsing
+            //  arrays of objects).
+        } else {
             string field = str;
-            active.keys[field] = "";
-            active.current = active.keys.find(field);
-            active.arrayTyped = false;
+            auto it = active.keys.find(field);
+            if (it == active.keys.end()) {
+                it = active.keys.emplace(field, unique_ptr<IFieldType>(nullptr)).first;
+            }
+            active.current = it;
         }
 
         return true;
     }
 
-    bool String(const char* str, rapidjson::SizeType length, bool copy) {
-        auto& active = ActiveObject();
-        if ( active.isArray ) {
-            if (!active.arrayTyped) {
-                SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::String",
-                    "Array " << active.namespaceName << "::" << active.current->first << " is a String.");
-
-                active.current->second =   active.indent + "NewStringArrayField(" 
-                                         + active.current->first + ");";
-                active.arrayTyped = true;
-            }
+    bool String(const char *str, rapidjson::SizeType length, bool copy) {
+        auto &active = ActiveObject();
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::String",
-                "Field " << active.namespaceName << "::" << active.current->first << " is a String.");
-            active.current->second =   active.indent + "NewStringField(" 
-                                     + active.current->first + ");";
+            active.current->second = BaseField::StringType(active.isArray, active.current->first, active.indent);
         }
         return true;
     }
 
     bool Double(double d) {
-        auto& active = ActiveObject();
-        if ( active.isArray ) {
-            if (!active.arrayTyped) {
-                SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Double",
-                    "Array " << active.namespaceName << "::" << active.current->first << " is a Double.");
-
-                active.current->second =   
-                      active.indent + "NewDoubleArrayField(" 
-                    + active.current->first + ");";
-                active.arrayTyped = true;
-            }
+        auto &active = ActiveObject();
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::Double",
-                "Field " << active.namespaceName << "::" << active.current->first << " is a Double.");
-
-            active.current->second =   active.indent + "NewDoubleField(" 
-                                     + active.current->first + ");";
+            active.current->second = BaseField::DoubleType(active.isArray, active.current->first, active.indent);
         }
+
         return true;
     }
 
     bool Int(int i) {
-        auto& active = ActiveObject();
-        if ( active.isArray ) {
-            if (!active.arrayTyped) {
-                SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Int",
-                    "Array " << active.namespaceName << "::" << active.current->first << " is a Int.");
-
-                active.current->second =   active.indent + "NewIntArrayField(" 
-                                         + active.current->first + ");";
-                active.arrayTyped = true;
-            }
+        auto &active = ActiveObject();
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::Int",
-                "Field " << active.namespaceName << "::" << active.current->first << " is a Int.");
-            active.current->second =   active.indent + "NewIntField(" 
-                                     + active.current->first + ");";
+            active.current->second = BaseField::IntType(active.isArray, active.current->first, active.indent);
         }
         return true;
     }
 
     bool Int64(int64_t i) {
-        auto& active = ActiveObject();
-        if ( active.isArray ) {
-            if (!active.arrayTyped) {
-                SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Int64",
-                    "Array " << active.namespaceName << "::" << active.current->first << " is a Int64.");
-
-                active.current->second =   active.indent + "NewI64ArrayField(" 
-                                         + active.current->first + ");";
-                active.arrayTyped = true;
-            }
+        auto &active = ActiveObject();
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::Int64",
-                "Field " << active.namespaceName << "::" << active.current->first << " is a Int64.");
-            active.current->second =   active.indent + "NewI64Field(" 
-                                     + active.current->first + ");";
+            active.current->second = BaseField::I64Type(active.isArray, active.current->first, active.indent);
         }
         return true;
     }
 
     bool Uint(unsigned u) {
-        auto& active = ActiveObject();
-        if ( active.isArray ) {
-            if (!active.arrayTyped) {
-                SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Uint",
-                    "Array " << active.namespaceName << "::" << active.current->first << " is a Uint.");
-
-                active.current->second = 
-                    active.indent + "NewUIntArrayField(" 
-                  + active.current->first + ");";
-
-                active.arrayTyped = true;
-            }
+        auto &active = ActiveObject();
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::Uint",
-                "Field " << active.namespaceName << "::" << active.current->first << " is a Uint.");
-            active.current->second =   active.indent + "NewUIntField(" 
-                                     + active.current->first + ");";
+            active.current->second = BaseField::UIntType(active.isArray, active.current->first, active.indent);
         }
+
         return true;
     }
 
     bool Uint64(uint64_t u) {
-        auto& active = ActiveObject();
-        if ( active.isArray ) {
-            if (!active.arrayTyped) {
-                SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Uint64",
-                    "Array " << active.namespaceName << "::" << active.current->first << " is a Uint64.");
-
-                active.current->second = 
-                    active.indent + "NewUI64ArrayField(" 
-                    + active.current->first + ");";
-                active.arrayTyped = true;
-            }
+        auto &active = ActiveObject();
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::Uint64",
-                "Field " << active.namespaceName << "::" << active.current->first << " is a Uint64.");
-            active.current->second =   active.indent + "NewUI64Field(" 
-                                     + active.current->first + ");";
+            active.current->second = BaseField::UI64Type(active.isArray, active.current->first, active.indent);
         }
+
         return true;
     }
 
     bool Bool(bool b) {
-        auto& active = ActiveObject();
-        if ( active.isArray ) {
-            if (!active.arrayTyped) {
-                SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Bool",
-                    "Array " << active.namespaceName << "::" << active.current->first << " is a bool.");
-
-                active.current->second =   active.indent + "NewBoolArrayField(" 
-                                         + active.current->first + ");";
-                active.arrayTyped = true;
-
-            }
+        auto &active = ActiveObject();
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::Bool",
-                "Field " << active.namespaceName << "::" << active.current->first << " is a bool.");
-
-            active.current->second =   active.indent + "NewBoolField(" 
-                                     + active.current->first + ");";
+            active.current->second = BaseField::BoolType(active.isArray, active.current->first, active.indent);
         }
         return true;
     }
 
     virtual bool StartArray() {
-        auto& active = ActiveObject();
-
-        if ( !active.IgnoreField() ) {
-            active.isArray = true;
-            active.arrayTyped = false;
-
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::StartArray",
-                "Starting new array " << active.namespaceName << "::" << active.current->first);
-        } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::StartArray",
-                "Ignoring new array " << active.namespaceName << "::" << active.current->first);
-        }
-
-
+        auto &active = ActiveObject();
+        active.isArray = true;
         return true;
     }
 
     virtual bool EndArray(rapidjson::SizeType elementCount) {
-        auto& active = ActiveObject();
-
-        if (active.IgnoreField()) {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::EndArray",
-                    "Ignoring end of duplicate array " << active.namespaceName << "::" << active.current->first);
-        } else if (!active.arrayTyped) {
-            SLOG_FROM(
-                LOG_VERBOSE,
-                "SimpleParsedJSON_Generator::EndArray",
-                "Array " << active.namespaceName << "::" << active.current->first << 
-                " finished, was NOT typed successfuly");
-            active.keys.erase(active.current);
-        } else {
-            SLOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::EndArray",
-                "Array " << active.namespaceName << "::" << active.current->first << 
-                " finished, was typed successfuly");
-        }
+        auto &active = ActiveObject();
         active.isArray = false;
 
         return true;
     }
 
     bool StartObject() {
-        if (started) {
-            if ( !IgnoreField() ) {
-                if(childObject.get()) {
-                    LOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::StartObject",
-                        "forwarding to existing child object...");
-                    childObject->StartObject();
-                } else {
-                    string childNamespace = current->first + "_fields";
-                    SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::StartObject",
-                        "Starting a new child object: " << childNamespace);
-
-                    childObject.reset(new SimpleParsedJSON_Generator(childNamespace, indent + "    "));
-                    childObject->StartObject();
-                }
-            } else {
-                SLOG_FROM(
+        if (started == false) {
+            LOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::StartObject",
-                    "Skipping non first item for array " 
-                    << namespaceName << "::" << current->first)
-            }
-        } else {
-            LOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::StartObject",
-                "Starting initial object");
+                    "Starting initial object");
             started = true;
+        } else if (childObject.get()) {
+            LOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "forwarding to existing child object...");
+            childObject->ObjectDefn().StartObject();
+        } else if (KnownType()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "Skipping object, we already know the type: "
+                            << namespaceName << "::" << current->first)
+        } else {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "Starting a new child object: " << current->first);
+
+            childObject = ObjectField::ObjectType(isArray,current->first,indent);
+            childObject->ObjectDefn().StartObject();
         }
         return true;
     }
 
     bool EndObject(rapidjson::SizeType memberCount) {
-        if (childObject.get()) {
-            if ( !IgnoreField() ) {
-                if (childObject->childObject.get()) {
-                    LOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::EndObject",
-                        "Forwarding to child object...");
-                    childObject->EndObject(memberCount);
-                } else if (!childObject->IgnoreField()) {
-                    const string& objName = current->first;
-                    string jsonName =  current->first + "_fields::JSON";
-
-                    SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::EndObject",
-                        "Completed object " << jsonName);
-
-                    stringstream buf;
-                    buf << endl;
-                    buf << childObject->GetCode("JSON");
-
-                    if (isArray) { 
-                        buf << indent << "NewObjectArray(";
-                    } else {
-                        buf << indent << "NewEmbededObject(";
-                    }
-                    buf << objName << ", " << jsonName << ");";
-
-                    current->second = buf.str();
-                    childObject.reset(nullptr);
-
-                    if (isArray) {
-                        SLOG_FROM(
-                            LOG_VERY_VERBOSE,
-                            "SimpleParsedJSON_Generator::EndObject",
-                            "Terminated array " 
-                            << namespaceName << "::" << current->first
-                            << " having completed the first item");
-                        arrayTyped = true;
-                    }
-                } else {
-                    SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::EndObject",
-                        "Ignored end of child object, whilst processing" << current->first);
-                }
-            } else {
-                SLOG_FROM(
+        if (started == false) {
+            SLOG_FROM(
+                    LOG_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "End of non-existent object!");
+        }
+        else if (childObject.get() == nullptr) {
+            LOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
-                    "Skipping non first item for array " 
-                    << namespaceName << "::" << current->first)
-            }
-        } else if (started) {
+                    "Terminated the object itself");
+        } else if (childObject->ObjectDefn().ParsingChildObject()) {
             LOG_FROM(
-                LOG_VERY_VERBOSE,
-                "SimpleParsedJSON_Generator::EndObject",
-                "Terminated the object itself");
-        } else {
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Forwarding to child object...");
+            childObject->ObjectDefn().EndObject(memberCount);
+        } else if (KnownType()) {
             SLOG_FROM(
-                LOG_VERBOSE,
-                "SimpleParsedJSON_Generator::EndObject",
-                "End of non-existent object!");
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Skipping end object, for object of known type..."
+                            << namespaceName << "::" << current->first)
+        } else {
+            current->second = std::move(childObject);
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Finished processing child object, " << current->first);
         }
         return true;
     }
 
     bool Null() {
-        auto& active = ActiveObject();
+        auto &active = ActiveObject();
         if (options.ignoreNull == false) {
             throw "TODO!";
-        } else if (active.isArray) {
-            // Ignore the null - there might be another type to come...
         } else {
-            active.keys.erase(active.current);
+            // Ignore the null - there might be another type to come...
         }
 
         return true;
     }
 
-    bool RawNumber(const char* str, size_t len, bool copy) {
+    bool RawNumber(const char *str, size_t len, bool copy) {
         return this->String(str, len, copy);
     }
 
-    string GetCode(const std::string& jsonName) {
+    string GetCode(const std::string &jsonName) {
         stringstream result;
         stringstream fields;
-        if ( namespaceName != "" ) {
+        if (namespaceName != "") {
             result << nsIndent << "namespace " << namespaceName << " {" << endl;
         }
 
         auto it = keys.begin();
         while (it != keys.end()) {
-            result << it->second << endl;
+            if (it->second.get() == nullptr) {
+                it = keys.erase(it);
+            } else {
+                ++it;
+            }
+        }
+        it = keys.begin();
+        while (it != keys.end()) {
+            result << it->second->GetDefinition() << endl;
+
             fields << indent << "    " << it->first;
+
             ++it;
             if (it == keys.end()) {
                 fields << endl;
@@ -518,7 +525,7 @@ public:
         result << indent << "typedef SimpleParsedJSON<" << endl;
         result << fields.str();
         result << indent << "> " << jsonName << ";" << endl;
-        if ( namespaceName != "" ) {
+        if (namespaceName != "") {
             result << nsIndent << "}" << endl;
         }
         return result.str();
@@ -527,10 +534,10 @@ public:
 private:
     bool started; // Indicates if we have found the start of the outer object yet
     bool isArray; // Indicates if the field currently being scanned is an array
-    bool arrayTyped; // Indicates if we've already found the first item in the array
 
-    unique_ptr<SimpleParsedJSON_Generator> childObject;
-    typedef std::map<std::string,std::string> Keys;
+    unique_ptr<ObjectField> childObject;
+
+    typedef std::map<std::string,std::unique_ptr<IFieldType>> Keys;
     Keys keys;
     Keys::iterator current;
     std::string indent;
