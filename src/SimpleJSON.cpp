@@ -475,6 +475,10 @@ public:
         throw "TODO!";
     }
 
+    bool RawNumber(const char* str, size_t len, bool copy) {
+        return this->String(str, len, copy);
+    }
+
     string GetCode(const std::string& jsonName) {
         stringstream result;
         stringstream fields;

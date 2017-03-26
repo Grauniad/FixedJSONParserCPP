@@ -385,6 +385,8 @@ public:
 
     bool EndArray(rapidjson::SizeType elementCount);
 
+    bool RawNumber(const char* str, size_t len, bool copy);
+
     /**************************************************************************
      *                       Public Utilities
      **************************************************************************/
