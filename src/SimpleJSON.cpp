@@ -3,6 +3,7 @@
 #include "logger.h"
 
 #include <sstream>
+#include <algorithm>
 
 using namespace std;
 
@@ -456,7 +457,6 @@ public:
                     "SimpleParsedJSON_Generator::EndArray",
                     "Array " << active.namespaceName << "::" << active.current->first <<
                              " finished, was NOT typed successfuly");
-            active.keys.erase(active.current);
         } else {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
@@ -557,10 +557,8 @@ public:
         auto &active = ActiveObject();
         if (options.ignoreNull == false) {
             throw "TODO!";
-        } else if (active.isArray) {
-            // Ignore the null - there might be another type to come...
         } else {
-            active.keys.erase(active.current);
+            // Ignore the null - there might be another type to come...
         }
 
         return true;
@@ -577,11 +575,17 @@ public:
             result << nsIndent << "namespace " << namespaceName << " {" << endl;
         }
 
+        for (auto it = keys.begin(); it != keys.end(); ++it) {
+            if (it->second.get() == nullptr) {
+                it = keys.erase(it);
+            }
+        }
         auto it = keys.begin();
         while (it != keys.end()) {
             result << it->second->GetDefinition(indent, it->first) << endl;
 
             fields << indent << "    " << it->first;
+
             ++it;
             if (it == keys.end()) {
                 fields << endl;
