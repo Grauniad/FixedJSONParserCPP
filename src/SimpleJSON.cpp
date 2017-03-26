@@ -485,14 +485,19 @@ public:
         if ( namespaceName != "" ) {
             result << nsIndent << "namespace " << namespaceName << " {" << endl;
         }
-        const auto first = keys.begin();
-        const auto last = --(keys.end());
-        for (Keys::iterator it = first; it != keys.end(); ++it) {
+
+        auto it = keys.begin();
+        while (it != keys.end()) {
             result << it->second << endl;
-            fields << indent << "    " << it->first 
-                   << (it == last ? "": ",")
-                   << endl;
+            fields << indent << "    " << it->first;
+            ++it;
+            if (it == keys.end()) {
+                fields << endl;
+            } else {
+                fields << "," << endl;
+            }
         }
+
         result << endl;
         result << indent << "typedef SimpleParsedJSON<" << endl;
         result << fields.str();
