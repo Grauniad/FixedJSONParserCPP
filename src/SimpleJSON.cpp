@@ -193,7 +193,6 @@ public:
             spJSON::GeneratorOptions opts = spJSON::GeneratorOptions())
             : started(false),
               isArray(false),
-              arrayTyped(false),
               childObject(nullptr),
               indent(_indent),
               namespaceName(_namespaceName),
@@ -216,7 +215,11 @@ public:
     }
 
     bool IgnoreField() {
-        return (isArray && arrayTyped);
+        return (isArray && KnownType());
+    }
+
+    bool KnownType() {
+        return (current->second.get() != nullptr);
     }
 
     bool Key(const char *str, rapidjson::SizeType length, bool copy) {
@@ -225,7 +228,6 @@ public:
             string field = str;
             active.keys[field] = unique_ptr<IFieldType>(nullptr);
             active.current = active.keys.find(field);
-            active.arrayTyped = false;
         }
 
         return true;
@@ -235,14 +237,13 @@ public:
         auto &active = ActiveObject();
         bool ignored = true;
         if (active.isArray) {
-            if (!active.arrayTyped) {
+            if (!active.KnownType()) {
                 SLOG_FROM(
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::String",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a String.");
 
                 ignored = false;
-                active.arrayTyped = true;
             }
         } else {
             SLOG_FROM(
@@ -263,14 +264,13 @@ public:
         auto &active = ActiveObject();
         bool ignored = true;
         if (active.isArray) {
-            if (!active.arrayTyped) {
+            if (!active.KnownType()) {
                 SLOG_FROM(
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::Double",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Double.");
 
                 ignored = false;
-                active.arrayTyped = true;
             }
         } else {
             SLOG_FROM(
@@ -291,14 +291,13 @@ public:
         auto &active = ActiveObject();
         bool ignoreField = true;
         if (active.isArray) {
-            if (!active.arrayTyped) {
+            if (!active.KnownType()) {
                 SLOG_FROM(
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::Int",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Int.");
 
                 ignoreField = false;
-                active.arrayTyped = true;
             }
         } else {
             SLOG_FROM(
@@ -318,12 +317,11 @@ public:
         bool ignoreField = true;
         auto &active = ActiveObject();
         if (active.isArray) {
-            if (!active.arrayTyped) {
+            if (!active.KnownType()) {
                 SLOG_FROM(
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::Int64",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Int64.");
-                active.arrayTyped = true;
                 ignoreField = false;
             }
         } else {
@@ -344,13 +342,12 @@ public:
         auto &active = ActiveObject();
         bool ignoreField = true;
         if (active.isArray) {
-            if (!active.arrayTyped) {
+            if (!active.KnownType()) {
                 SLOG_FROM(
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::Uint",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Uint.");
 
-                active.arrayTyped = true;
                 ignoreField = false;
             }
         } else {
@@ -372,13 +369,12 @@ public:
         auto &active = ActiveObject();
         bool ignored = true;
         if (active.isArray) {
-            if (!active.arrayTyped) {
+            if (!active.KnownType()) {
                 SLOG_FROM(
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::Uint64",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a Uint64.");
 
-                active.arrayTyped = true;
                 ignored = false;
             }
         } else {
@@ -400,13 +396,12 @@ public:
         auto &active = ActiveObject();
         bool ignored = true;
         if (active.isArray) {
-            if (!active.arrayTyped) {
+            if (!active.KnownType()) {
                 SLOG_FROM(
                         LOG_VERY_VERBOSE,
                         "SimpleParsedJSON_Generator::Bool",
                         "Array " << active.namespaceName << "::" << active.current->first << " is a bool.");
 
-                active.arrayTyped = true;
                 ignored = false;
 
             }
@@ -431,7 +426,6 @@ public:
 
         if (!active.IgnoreField()) {
             active.isArray = true;
-            active.arrayTyped = false;
 
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
@@ -456,7 +450,7 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndArray",
                     "Ignoring end of duplicate array " << active.namespaceName << "::" << active.current->first);
-        } else if (!active.arrayTyped) {
+        } else if (!active.KnownType()) {
             SLOG_FROM(
                     LOG_VERBOSE,
                     "SimpleParsedJSON_Generator::EndArray",
@@ -531,7 +525,6 @@ public:
                                 "Terminated array "
                                         << namespaceName << "::" << current->first
                                         << " having completed the first item");
-                        arrayTyped = true;
                     }
                 } else {
                     SLOG_FROM(
@@ -610,7 +603,6 @@ public:
 private:
     bool started; // Indicates if we have found the start of the outer object yet
     bool isArray; // Indicates if the field currently being scanned is an array
-    bool arrayTyped; // Indicates if we've already found the first item in the array
 
     unique_ptr<SimpleParsedJSON_Generator> childObject;
 
