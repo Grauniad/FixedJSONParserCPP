@@ -393,18 +393,18 @@ public:
                     "SimpleParsedJSON_Generator::StartObject",
                     "Starting initial object");
             started = true;
-        } else if (KnownType()) {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::StartObject",
-                    "Skipping object, we already know the type: "
-                            << namespaceName << "::" << current->first)
         } else if (childObject.get()) {
             LOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::StartObject",
                     "forwarding to existing child object...");
             childObject->ObjectDefn().StartObject();
+        } else if (KnownType()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "Skipping object, we already know the type: "
+                            << namespaceName << "::" << current->first)
         } else {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
@@ -429,12 +429,6 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Terminated the object itself");
-        } else if (KnownType()) {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::EndObject",
-                    "Skipping end object, for object of known type..."
-                            << namespaceName << "::" << current->first)
         } else if (childObject->ObjectDefn().childObject.get()) {
             LOG_FROM(
                     LOG_VERY_VERBOSE,
@@ -446,6 +440,12 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Ignored end of child object, whilst processing" << current->first);
+        } else if (KnownType()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Skipping end object, for object of known type..."
+                            << namespaceName << "::" << current->first)
         } else {
             current->second = std::move(childObject);
             SLOG_FROM(
