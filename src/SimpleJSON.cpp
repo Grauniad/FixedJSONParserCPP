@@ -103,6 +103,88 @@ bool FieldBase::Null() {
  *****************************************************************************/
 
 class SimpleParsedJSON_Generator {
+private:
+
+    class IFieldType {
+    public:
+        virtual ~IFieldType() {}
+
+        virtual string GetDefinition(const std::string& indent, const std::string &name) = 0;
+    };
+
+    class BaseField: public IFieldType {
+    public:
+        BaseField(const std::string& type) : type(type) { }
+
+        virtual string GetDefinition(const std::string& indent, const std::string &name) {
+            std::string def =  indent + type + "(" + name + ");";
+            return def;
+        }
+
+        static std::unique_ptr<BaseField> I64Type(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewI64ArrayField" : "NewI64Field");
+        }
+
+        static std::unique_ptr<BaseField> UI64Type(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewUI64ArrayField" : "NewUI64Field");
+        }
+
+        static std::unique_ptr<BaseField> IntType(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewIntArrayField" : "NewIntField");
+        }
+
+        static std::unique_ptr<BaseField> UIntType(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewUIntArrayField" : "NewUIntField");
+        }
+
+        static std::unique_ptr<BaseField> BoolType(bool isArray) {
+            return std::make_unique<BaseField>(isArray? "NewBoolArrayField" : "NewBoolField");
+        }
+
+        static std::unique_ptr<BaseField> DoubleType(bool isArray) {
+            return std::make_unique<BaseField>(isArray ? "NewDoubleArrayField" : "NewDoubleField");
+        }
+
+        static std::unique_ptr<BaseField> StringType(bool isArray) {
+            return std::make_unique<BaseField>(isArray ? "NewStringArrayField" : "NewStringField");
+        }
+    private:
+        std::string type;
+    };
+
+    class ObjectField: public IFieldType {
+    public:
+        ObjectField(bool isArray,
+                    unique_ptr<SimpleParsedJSON_Generator> parser)
+                : isArray(isArray), objDefn(std::move(parser)) {}
+
+        virtual string GetDefinition(const std::string &indent, const std::string &name) {
+            string jsonName = name + "_fields::JSON";
+
+            stringstream buf;
+            buf << endl;
+            buf << objDefn->GetCode("JSON");
+
+            if (isArray) {
+                buf << indent << "NewObjectArray(";
+            } else {
+                buf << indent << "NewEmbededObject(";
+            }
+            buf << name << ", " << jsonName << ");";
+            return buf.str();
+        }
+
+        static std::unique_ptr<ObjectField> ObjectType(
+                bool isArray,
+                unique_ptr<SimpleParsedJSON_Generator> objDefn)
+        {
+            return std::make_unique<ObjectField>(isArray, std::move(objDefn));
+        }
+
+    public:
+        bool isArray;
+        unique_ptr<SimpleParsedJSON_Generator> objDefn;
+    };
 public:
 
     SimpleParsedJSON_Generator(
@@ -141,7 +223,7 @@ public:
         auto &active = ActiveObject();
         if (!active.IgnoreField()) {
             string field = str;
-            active.keys[field] = "";
+            active.keys[field] = unique_ptr<IFieldType>(nullptr);
             active.current = active.keys.find(field);
             active.arrayTyped = false;
         }
@@ -171,9 +253,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::StringType(active.isArray)->GetDefinition(
-                    active.indent,
-                    active.current->first);
+            active.current->second = BaseField::StringType(active.isArray);
 
         }
         return true;
@@ -201,9 +281,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::DoubleType(active.isArray)->GetDefinition(
-                    active.indent,
-                    active.current->first);
+            active.current->second = BaseField::DoubleType(active.isArray);
 
         }
         return true;
@@ -231,9 +309,7 @@ public:
         }
 
         if (not ignoreField) {
-            active.current->second = BaseField::IntType(active.isArray)->GetDefinition(
-                    active.indent,
-                    active.current->first);
+            active.current->second = BaseField::IntType(active.isArray);
         }
         return true;
     }
@@ -259,9 +335,7 @@ public:
         }
 
         if (not ignoreField) {
-            active.current->second = BaseField::I64Type(active.isArray)->GetDefinition(
-                    active.indent,
-                    active.current->first);
+            active.current->second = BaseField::I64Type(active.isArray);
         }
         return true;
     }
@@ -288,9 +362,7 @@ public:
         }
 
         if (not ignoreField) {
-            active.current->second = BaseField::UIntType(active.isArray)->GetDefinition(
-                    active.indent,
-                    active.current->first);
+            active.current->second = BaseField::UIntType(active.isArray);
         }
 
         return true;
@@ -318,9 +390,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::UI64Type(active.isArray)->GetDefinition(
-                    active.indent,
-                    active.current->first);
+            active.current->second = BaseField::UI64Type(active.isArray);
         }
 
         return true;
@@ -350,9 +420,7 @@ public:
         }
 
         if (not ignored) {
-            active.current->second = BaseField::BoolType(active.isArray)->GetDefinition(
-                    active.indent,
-                    active.current->first);
+            active.current->second = BaseField::BoolType(active.isArray);
 
         }
         return true;
@@ -453,9 +521,7 @@ public:
                             "Forwarding to child object...");
                     childObject->EndObject(memberCount);
                 } else if (!childObject->IgnoreField()) {
-                    current->second =
-                            ObjectField::ObjectType(isArray, *childObject)
-                                    ->GetDefinition(indent, current->first);
+                    current->second = ObjectField::ObjectType(isArray, std::move(childObject));
                     childObject.reset(nullptr);
 
                     if (isArray) {
@@ -520,7 +586,8 @@ public:
 
         auto it = keys.begin();
         while (it != keys.end()) {
-            result << it->second << endl;
+            result << it->second->GetDefinition(indent, it->first) << endl;
+
             fields << indent << "    " << it->first;
             ++it;
             if (it == keys.end()) {
@@ -547,87 +614,7 @@ private:
 
     unique_ptr<SimpleParsedJSON_Generator> childObject;
 
-    class IFieldType {
-    public:
-        virtual ~IFieldType() {}
-
-        virtual string GetDefinition(const std::string& indent, const std::string &name) = 0;
-    };
-
-    class BaseField: public IFieldType {
-    public:
-        BaseField(const std::string& type) : type(type) { }
-
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + type + "(" + name + ");";
-            return def;
-        }
-
-        static std::unique_ptr<BaseField> I64Type(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewI64ArrayField" : "NewI64Field");
-        }
-
-        static std::unique_ptr<BaseField> UI64Type(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewUI64ArrayField" : "NewUI64Field");
-        }
-
-        static std::unique_ptr<BaseField> IntType(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewIntArrayField" : "NewIntField");
-        }
-
-        static std::unique_ptr<BaseField> UIntType(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewUIntArrayField" : "NewUIntField");
-        }
-
-        static std::unique_ptr<BaseField> BoolType(bool isArray) {
-            return std::make_unique<BaseField>(isArray? "NewBoolArrayField" : "NewBoolField");
-        }
-
-        static std::unique_ptr<BaseField> DoubleType(bool isArray) {
-            return std::make_unique<BaseField>(isArray ? "NewDoubleArrayField" : "NewDoubleField");
-        }
-
-        static std::unique_ptr<BaseField> StringType(bool isArray) {
-            return std::make_unique<BaseField>(isArray ? "NewStringArrayField" : "NewStringField");
-        }
-    private:
-        std::string type;
-    };
-
-    class ObjectField: IFieldType {
-    public:
-        ObjectField(bool isArray, SimpleParsedJSON_Generator &parser)
-                : isArray(isArray), objDefn(parser) {}
-
-        virtual string GetDefinition(const std::string &indent, const std::string &name) {
-            string jsonName = name + "_fields::JSON";
-
-            stringstream buf;
-            buf << endl;
-            buf << objDefn.GetCode("JSON");
-
-            if (isArray) {
-                buf << indent << "NewObjectArray(";
-            } else {
-                buf << indent << "NewEmbededObject(";
-            }
-            buf << name << ", " << jsonName << ");";
-            return buf.str();
-        }
-
-        static std::unique_ptr<ObjectField> ObjectType(
-                bool isArray,
-                SimpleParsedJSON_Generator &objDefn)
-        {
-            return std::make_unique<ObjectField>(isArray, objDefn);
-        }
-
-    public:
-        bool isArray;
-        SimpleParsedJSON_Generator& objDefn;
-    };
-
-    typedef std::map<std::string,std::string> Keys;
+    typedef std::map<std::string,std::unique_ptr<IFieldType>> Keys;
     Keys keys;
     Keys::iterator current;
     std::string indent;
