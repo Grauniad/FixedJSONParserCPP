@@ -156,10 +156,19 @@ private:
     class ObjectField: public IFieldType {
     public:
         ObjectField(bool isArray,
-                    unique_ptr<SimpleParsedJSON_Generator> parser)
-                : isArray(isArray), objDefn(std::move(parser)) {}
+                    const std::string& name,
+                    const std::string& indent)
+                : isArray(isArray)
+                , indent(indent)
+                , name(name)
+        {
+            string childNamespace = name + "_fields";
+            objDefn = std::make_unique<SimpleParsedJSON_Generator>(
+                        childNamespace,
+                        indent + "    ");
+        }
 
-        virtual string GetDefinition(const std::string &indent, const std::string &name) {
+        virtual string GetDefinition(const std::string &indent, const std::string& dummyName) {
             string jsonName = name + "_fields::JSON";
 
             stringstream buf;
@@ -177,12 +186,19 @@ private:
 
         static std::unique_ptr<ObjectField> ObjectType(
                 bool isArray,
-                unique_ptr<SimpleParsedJSON_Generator> objDefn)
+                const std::string& name,
+                const std::string& indent)
         {
-            return std::make_unique<ObjectField>(isArray, std::move(objDefn));
+            return std::make_unique<ObjectField>(isArray, name, indent);
+        }
+
+        SimpleParsedJSON_Generator& ObjectDefn() {
+            return *objDefn;
         }
 
     public:
+        std::string indent;
+        std::string name;
         bool isArray;
         unique_ptr<SimpleParsedJSON_Generator> objDefn;
     };
@@ -206,10 +222,10 @@ public:
     }
 
     SimpleParsedJSON_Generator &ActiveObject() {
-        SimpleParsedJSON_Generator *obj = childObject.get();
+        ObjectField *obj = childObject.get();
 
         if (obj) {
-            return obj->ActiveObject();
+            return obj->ObjectDefn().ActiveObject();
         } else {
             return *this;
         }
@@ -477,16 +493,15 @@ public:
                             LOG_VERY_VERBOSE,
                             "SimpleParsedJSON_Generator::StartObject",
                             "forwarding to existing child object...");
-                    childObject->StartObject();
+                    childObject->ObjectDefn().StartObject();
                 } else {
-                    string childNamespace = current->first + "_fields";
                     SLOG_FROM(
                             LOG_VERY_VERBOSE,
                             "SimpleParsedJSON_Generator::StartObject",
-                            "Starting a new child object: " << childNamespace);
+                            "Starting a new child object: " << current->first);
 
-                    childObject.reset(new SimpleParsedJSON_Generator(childNamespace, indent + "    "));
-                    childObject->StartObject();
+                    childObject = ObjectField::ObjectType(isArray,current->first,indent);
+                    childObject->ObjectDefn().StartObject();
                 }
             } else {
                 SLOG_FROM(
@@ -508,24 +523,20 @@ public:
     bool EndObject(rapidjson::SizeType memberCount) {
         if (childObject.get()) {
             if (!IgnoreField()) {
-                if (childObject->childObject.get()) {
+                if (childObject->ObjectDefn().childObject.get()) {
                     LOG_FROM(
                             LOG_VERY_VERBOSE,
                             "SimpleParsedJSON_Generator::EndObject",
                             "Forwarding to child object...");
-                    childObject->EndObject(memberCount);
-                } else if (!childObject->IgnoreField()) {
-                    current->second = ObjectField::ObjectType(isArray, std::move(childObject));
-                    childObject.reset(nullptr);
+                    childObject->ObjectDefn().EndObject(memberCount);
+                } else if (!childObject->ObjectDefn().IgnoreField()) {
+                    current->second = std::move(childObject);
 
-                    if (isArray) {
-                        SLOG_FROM(
-                                LOG_VERY_VERBOSE,
-                                "SimpleParsedJSON_Generator::EndObject",
-                                "Terminated array "
-                                        << namespaceName << "::" << current->first
-                                        << " having completed the first item");
-                    }
+                    SLOG_FROM(
+                            LOG_VERY_VERBOSE,
+                            "SimpleParsedJSON_Generator::EndObject",
+                            "Finished processing child object, " << current->first);
+
                 } else {
                     SLOG_FROM(
                             LOG_VERY_VERBOSE,
@@ -608,7 +619,7 @@ private:
     bool started; // Indicates if we have found the start of the outer object yet
     bool isArray; // Indicates if the field currently being scanned is an array
 
-    unique_ptr<SimpleParsedJSON_Generator> childObject;
+    unique_ptr<ObjectField> childObject;
 
     typedef std::map<std::string,std::unique_ptr<IFieldType>> Keys;
     Keys keys;
