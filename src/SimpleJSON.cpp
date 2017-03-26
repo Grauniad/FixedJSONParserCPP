@@ -104,15 +104,18 @@ bool FieldBase::Null() {
 
 class SimpleParsedJSON_Generator {
 public:
+
     SimpleParsedJSON_Generator(
         const std::string _namespaceName = "",
-        const std::string _indent = "    ") 
+        const std::string _indent = "    ",
+        spJSON::GeneratorOptions opts = spJSON::GeneratorOptions())
             : started(false),
               isArray(false),
               arrayTyped(false),
               childObject(nullptr),
               indent(_indent),
-              namespaceName(_namespaceName)
+              namespaceName(_namespaceName),
+              options(opts)
     {
         int nsIndentSize = indent.length() -4;
         if (nsIndentSize < 0 ) {
@@ -141,6 +144,7 @@ public:
             string field = str;
             active.keys[field] = "";
             active.current = active.keys.find(field);
+            active.arrayTyped = false;
         }
 
         return true;
@@ -346,12 +350,18 @@ public:
     virtual bool EndArray(rapidjson::SizeType elementCount) {
         auto& active = ActiveObject();
 
-        if (!active.arrayTyped) {
+        if (active.IgnoreField()) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndArray",
+                    "Ignoring end of duplicate array " << active.namespaceName << "::" << active.current->first);
+        } else if (!active.arrayTyped) {
             SLOG_FROM(
                 LOG_VERBOSE,
                 "SimpleParsedJSON_Generator::EndArray",
                 "Array " << active.namespaceName << "::" << active.current->first << 
                 " finished, was NOT typed successfuly");
+            active.keys.erase(active.current);
         } else {
             SLOG_FROM(
                 LOG_VERY_VERBOSE,
@@ -359,9 +369,7 @@ public:
                 "Array " << active.namespaceName << "::" << active.current->first << 
                 " finished, was typed successfuly");
         }
-
         active.isArray = false;
-        active.arrayTyped = false;
 
         return true;
     }
@@ -461,7 +469,6 @@ public:
                 LOG_VERY_VERBOSE,
                 "SimpleParsedJSON_Generator::EndObject",
                 "Terminated the object itself");
-            started = false;
         } else {
             SLOG_FROM(
                 LOG_VERBOSE,
@@ -472,7 +479,16 @@ public:
     }
 
     bool Null() {
-        throw "TODO!";
+        auto& active = ActiveObject();
+        if (options.ignoreNull == false) {
+            throw "TODO!";
+        } else if (active.isArray) {
+            // Ignore the null - there might be another type to come...
+        } else {
+            active.keys.erase(active.current);
+        }
+
+        return true;
     }
 
     bool RawNumber(const char* str, size_t len, bool copy) {
@@ -485,14 +501,19 @@ public:
         if ( namespaceName != "" ) {
             result << nsIndent << "namespace " << namespaceName << " {" << endl;
         }
-        const auto first = keys.begin();
-        const auto last = --(keys.end());
-        for (Keys::iterator it = first; it != keys.end(); ++it) {
+
+        auto it = keys.begin();
+        while (it != keys.end()) {
             result << it->second << endl;
-            fields << indent << "    " << it->first 
-                   << (it == last ? "": ",")
-                   << endl;
+            fields << indent << "    " << it->first;
+            ++it;
+            if (it == keys.end()) {
+                fields << endl;
+            } else {
+                fields << "," << endl;
+            }
         }
+
         result << endl;
         result << indent << "typedef SimpleParsedJSON<" << endl;
         result << fields.str();
@@ -515,11 +536,16 @@ private:
     std::string indent;
     std::string nsIndent;
     std::string namespaceName;
+    spJSON::GeneratorOptions options;
 };
 
 
-std::string spJSON::Gen(const string& className, const string& exampleJson) {
-    SimpleParsedJSON_Generator gen;
+std::string spJSON::Gen(
+        const string& className,
+        const string& exampleJson,
+        spJSON::GeneratorOptions options )
+{
+    SimpleParsedJSON_Generator gen("", "    ", options);
 
     rapidjson::StringStream ss(exampleJson.c_str());
     rapidjson::Reader reader;

@@ -15,6 +15,9 @@ include_directories(dep/rapidjson/include dep/rapidjson/thirdparty/gtest/include
 
 add_library(libFixedJSON STATIC ${SOURCE_FILES})
 
+add_executable(jsonGen src/jsonGen.cpp)
+target_link_libraries(jsonGen libFixedJSON)
+
 #
 # The remaining is Test configuration
 #

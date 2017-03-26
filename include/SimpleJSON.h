@@ -149,12 +149,24 @@ namespace spJSON {
      *                    Auto Generate an implementation
      **************************************************************************/
 
+    struct GeneratorOptions {
+        GeneratorOptions() {
+            // defaults...
+            ignoreNull = false;
+        }
+        bool ignoreNull;
+    };
+
      /** 
       * Auto-generate an implementation of SimpleParsedJSON, based on an example JSON string
       *
       * @returns The code to generate the SimpleParsedJSON implementation
       */
-     std::string Gen(const std::string& className, const std::string& exampleJson);
+     std::string Gen(
+             const std::string& className,
+             const std::string& exampleJson,
+             spJSON::GeneratorOptions options = spJSON::GeneratorOptions());
+
 }
 
 /*****************************************************************************
