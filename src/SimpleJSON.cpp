@@ -302,104 +302,40 @@ public:
 
     bool String(const char *str, rapidjson::SizeType length, bool copy) {
         auto &active = ActiveObject();
-        bool ignored = true;
-        if (active.isArray) {
-            if (!active.KnownType()) {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::String",
-                        "Array " << active.namespaceName << "::" << active.current->first << " is a String.");
-
-                ignored = false;
-            }
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::String",
-                    "Field " << active.namespaceName << "::" << active.current->first << " is a String.");
-            ignored = false;
-        }
-
-        if (not ignored) {
             active.current->second = BaseField::StringType(active.isArray, active.current->first, active.indent);
-
         }
         return true;
     }
 
     bool Double(double d) {
         auto &active = ActiveObject();
-        bool ignored = true;
-        if (active.isArray) {
-            if (!active.KnownType()) {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::Double",
-                        "Array " << active.namespaceName << "::" << active.current->first << " is a Double.");
-
-                ignored = false;
-            }
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Double",
-                    "Field " << active.namespaceName << "::" << active.current->first << " is a Double.");
-            ignored = false;
-        }
-
-        if (not ignored) {
             active.current->second = BaseField::DoubleType(active.isArray, active.current->first, active.indent);
-
         }
+
         return true;
     }
 
     bool Int(int i) {
         auto &active = ActiveObject();
-        bool ignoreField = true;
-        if (active.isArray) {
-            if (!active.KnownType()) {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::Int",
-                        "Array " << active.namespaceName << "::" << active.current->first << " is a Int.");
-
-                ignoreField = false;
-            }
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Int",
-                    "Field " << active.namespaceName << "::" << active.current->first << " is a Int.");
-            ignoreField = false;
-        }
-
-        if (not ignoreField) {
             active.current->second = BaseField::IntType(active.isArray, active.current->first, active.indent);
         }
         return true;
     }
 
     bool Int64(int64_t i) {
-        bool ignoreField = true;
         auto &active = ActiveObject();
-        if (active.isArray) {
-            if (!active.KnownType()) {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::Int64",
-                        "Array " << active.namespaceName << "::" << active.current->first << " is a Int64.");
-                ignoreField = false;
-            }
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Int64",
-                    "Field " << active.namespaceName << "::" << active.current->first << " is a Int64.");
-            ignoreField = false;
-        }
-
-        if (not ignoreField) {
             active.current->second = BaseField::I64Type(active.isArray, active.current->first, active.indent);
         }
         return true;
@@ -407,25 +343,9 @@ public:
 
     bool Uint(unsigned u) {
         auto &active = ActiveObject();
-        bool ignoreField = true;
-        if (active.isArray) {
-            if (!active.KnownType()) {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::Uint",
-                        "Array " << active.namespaceName << "::" << active.current->first << " is a Uint.");
-
-                ignoreField = false;
-            }
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Uint",
-                    "Field " << active.namespaceName << "::" << active.current->first << " is a Uint.");
-            ignoreField = false;
-        }
-
-        if (not ignoreField) {
             active.current->second = BaseField::UIntType(active.isArray, active.current->first, active.indent);
         }
 
@@ -434,25 +354,9 @@ public:
 
     bool Uint64(uint64_t u) {
         auto &active = ActiveObject();
-        bool ignored = true;
-        if (active.isArray) {
-            if (!active.KnownType()) {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::Uint64",
-                        "Array " << active.namespaceName << "::" << active.current->first << " is a Uint64.");
-
-                ignored = false;
-            }
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Uint64",
-                    "Field " << active.namespaceName << "::" << active.current->first << " is a Uint64.");
-            ignored = false;
-        }
-
-        if (not ignored) {
             active.current->second = BaseField::UI64Type(active.isArray, active.current->first, active.indent);
         }
 
@@ -461,29 +365,10 @@ public:
 
     bool Bool(bool b) {
         auto &active = ActiveObject();
-        bool ignored = true;
-        if (active.isArray) {
-            if (!active.KnownType()) {
-                SLOG_FROM(
-                        LOG_VERY_VERBOSE,
-                        "SimpleParsedJSON_Generator::Bool",
-                        "Array " << active.namespaceName << "::" << active.current->first << " is a bool.");
-
-                ignored = false;
-
-            }
+        if (active.KnownType()) {
+            // We already know what this is...
         } else {
-            SLOG_FROM(
-                    LOG_VERY_VERBOSE,
-                    "SimpleParsedJSON_Generator::Bool",
-                    "Field " << active.namespaceName << "::" << active.current->first << " is a bool.");
-            ignored = false;
-
-        }
-
-        if (not ignored) {
             active.current->second = BaseField::BoolType(active.isArray, active.current->first, active.indent);
-
         }
         return true;
     }
