@@ -478,12 +478,15 @@ public:
             result << nsIndent << "namespace " << namespaceName << " {" << endl;
         }
 
-        for (auto it = keys.begin(); it != keys.end(); ++it) {
+        auto it = keys.begin();
+        while (it != keys.end()) {
             if (it->second.get() == nullptr) {
                 it = keys.erase(it);
+            } else {
+                ++it;
             }
         }
-        auto it = keys.begin();
+        it = keys.begin();
         while (it != keys.end()) {
             result << it->second->GetDefinition() << endl;
 
