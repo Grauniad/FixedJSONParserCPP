@@ -899,6 +899,10 @@ bool SimpleParsedJSON<Fields...>::String(
     return true;
 }
 
+template <class...Fields>
+bool SimpleParsedJSON<Fields...>::RawNumber(const char *str, size_t len, bool copy) {
+    return this->String(str, len, copy);
+}
 /**
  * The current field has an integer value. Check our current field is an int, or
  * can be converted to one, and set it.
