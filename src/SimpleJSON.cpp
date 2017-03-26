@@ -429,11 +429,11 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Terminated the object itself");
-        } else if (IgnoreField()) {
+        } else if (KnownType()) {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
-                    "Skipping non first item for array "
+                    "Skipping end object, for object of known type..."
                             << namespaceName << "::" << current->first)
         } else if (childObject->ObjectDefn().childObject.get()) {
             LOG_FROM(
