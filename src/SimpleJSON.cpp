@@ -548,116 +548,72 @@ private:
         virtual string GetDefinition(const std::string& indent, const std::string &name) = 0;
     };
 
-    class Int64Field: public IFieldType {
+    class BaseField: public IFieldType {
     public:
+        BaseField(const std::string& type) : type(type) { }
+
         virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewI64Field(" + name + ");";
+            std::string def =  indent + type + "(" + name + ");";
             return def;
         }
+    private:
+        std::string type;
+    };
+
+    struct Int64Field: public BaseField {
+        Int64Field(): BaseField("NewI64Field") {}
     } int64Type;
 
-    class Int64ArrayField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewI64ArrayField(" + name + ");";
-            return def;
-        }
+    struct Int64ArrayField: public BaseField {
+        Int64ArrayField(): BaseField("NewI64ArrayField") {}
     } int64ArrayType;
 
-    class UInt64Field: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewUI64Field(" + name + ");";
-            return def;
-        }
-    } uint64Type;
-
-    class UInt64ArrayField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewUI64ArrayField(" + name + ");";
-            return def;
-        }
-    } uint64ArrayType;
-
-    class IntField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewIntField(" + name + ");";
-            return def;
-        }
+    struct IntField: public BaseField {
+        IntField(): BaseField("NewIntField") {}
     } intType;
 
-    class IntArrayField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewIntArrayField(" + name + ");";
-            return def;
-        }
+    struct IntArrayField: public BaseField {
+        IntArrayField(): BaseField("NewIntArrayField") {}
     } intArrayType;
 
-    class BoolField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewBoolField(" + name + ");";
-            return def;
-        }
-    } boolType;
+    struct UInt64Field: public BaseField {
+        UInt64Field(): BaseField("NewUI64Field") {}
+    } uint64Type;
 
-    class BoolArrayField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewBoolArrayField(" + name + ");";
-            return def;
-        }
-    } boolArrayType;
+    struct UInt64ArrayField: public BaseField {
+        UInt64ArrayField(): BaseField("NewUI64ArrayField") {}
+    } uint64ArrayType;
 
-    class UIntField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewUIntField(" + name + ");";
-            return def;
-        }
+    struct UIntField: public BaseField {
+        UIntField(): BaseField("NewUIntField") {}
     } uintType;
 
-    class UIntArrayField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewUIntArrayField(" + name + ");";
-            return def;
-        }
+    struct UIntArrayField: public BaseField {
+        UIntArrayField(): BaseField("NewUIntArrayField") {}
     } uintArrayType;
 
-    class DoubleField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewDoubleField(" + name + ");";
-            return def;
-        }
+    struct BoolField: public BaseField {
+        BoolField(): BaseField("NewBoolField") {}
+    } boolType;
+
+    struct BoolArrayField: public BaseField {
+        BoolArrayField(): BaseField("NewBoolArrayField") {}
+    } boolArrayType;
+
+    struct DoubleField: public BaseField {
+        DoubleField(): BaseField("NewDoubleField") {}
     } doubleType;
 
-    class DoubleArrayField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewDoubleArrayField(" + name + ");";
-            return def;
-        }
+    struct DoubleArrayField: public BaseField {
+        DoubleArrayField(): BaseField("NewDoubleArrayField") {}
     } doubleArrayType;
 
-    class StringField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewStringField(" + name + ");";
-            return def;
-        }
+    struct StringField: public BaseField {
+        StringField(): BaseField("NewStringField") {}
     } stringType;
 
-    class StringArrayField: public IFieldType {
-    public:
-        virtual string GetDefinition(const std::string& indent, const std::string &name) {
-            std::string def =  indent + "NewStringArrayField(" + name + ");";
-            return def;
-        }
+    struct StringArrayField: public BaseField {
+        StringArrayField(): BaseField("NewStringArrayField") {}
     } stringArrayType;
 
     typedef std::map<std::string,std::string> Keys;
