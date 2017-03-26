@@ -453,26 +453,9 @@ public:
                             "Forwarding to child object...");
                     childObject->EndObject(memberCount);
                 } else if (!childObject->IgnoreField()) {
-                    const string &objName = current->first;
-                    string jsonName = current->first + "_fields::JSON";
-
-                    SLOG_FROM(
-                            LOG_VERY_VERBOSE,
-                            "SimpleParsedJSON_Generator::EndObject",
-                            "Completed object " << jsonName);
-
-                    stringstream buf;
-                    buf << endl;
-                    buf << childObject->GetCode("JSON");
-
-                    if (isArray) {
-                        buf << indent << "NewObjectArray(";
-                    } else {
-                        buf << indent << "NewEmbededObject(";
-                    }
-                    buf << objName << ", " << jsonName << ");";
-
-                    current->second = buf.str();
+                    current->second =
+                            ObjectField::ObjectType(isArray, *childObject)
+                                    ->GetDefinition(indent, current->first);
                     childObject.reset(nullptr);
 
                     if (isArray) {
@@ -609,6 +592,39 @@ private:
         }
     private:
         std::string type;
+    };
+
+    class ObjectField: IFieldType {
+    public:
+        ObjectField(bool isArray, SimpleParsedJSON_Generator &parser)
+                : isArray(isArray), objDefn(parser) {}
+
+        virtual string GetDefinition(const std::string &indent, const std::string &name) {
+            string jsonName = name + "_fields::JSON";
+
+            stringstream buf;
+            buf << endl;
+            buf << objDefn.GetCode("JSON");
+
+            if (isArray) {
+                buf << indent << "NewObjectArray(";
+            } else {
+                buf << indent << "NewEmbededObject(";
+            }
+            buf << name << ", " << jsonName << ");";
+            return buf.str();
+        }
+
+        static std::unique_ptr<ObjectField> ObjectType(
+                bool isArray,
+                SimpleParsedJSON_Generator &objDefn)
+        {
+            return std::make_unique<ObjectField>(isArray, objDefn);
+        }
+
+    public:
+        bool isArray;
+        SimpleParsedJSON_Generator& objDefn;
     };
 
     typedef std::map<std::string,std::string> Keys;
