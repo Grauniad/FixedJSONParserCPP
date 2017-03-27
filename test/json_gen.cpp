@@ -998,6 +998,124 @@ TEST(JSONGen, ArrayOfObjects2_Merge) {
     ASSERT_EQ(output , expected);
 }
 
+TEST(JSONGen, ArrayOfObjects2_MultiMerge) {
+    string input = R"RAW(
+           {
+                "OuterObjects": [
+                    {
+                        "Objects": [
+                            {
+                                "IntField1": 1
+                            },
+                            {
+                                "IntField2": 2
+                            }
+                        ],
+                        "Objects2": [
+                            {
+                                "IntField21": 1
+                            },
+                            {
+                                "IntField22": 2
+                            }
+                        ]
+                    },
+                    {
+                        "Dummy": {
+                            "dummyField": "String"
+                        },
+                        "Objects": [
+                            {
+                                "IntField1": 3
+                            },
+                            {
+                                "IntField2": 4
+                            },
+                            {
+                                "IntField3": 5
+                            }
+                        ]
+                    }
+                ],
+                "Objects": [
+                    {
+                        "outer1": 1
+                    },
+                    {
+                        "outer2": 2
+                    }
+                ]
+           }
+        )RAW";
+    string expected =
+            R"RAW(
+    namespace Objects_fields {
+        NewUIntField(outer1);
+        NewUIntField(outer2);
+
+        typedef SimpleParsedJSON<
+            outer1,
+            outer2
+        > JSON;
+    }
+    NewObjectArray(Objects, Objects_fields::JSON);
+
+    namespace OuterObjects_fields {
+
+        namespace Dummy_fields {
+            NewStringField(dummyField);
+
+            typedef SimpleParsedJSON<
+                dummyField
+            > JSON;
+        }
+        NewEmbededObject(Dummy, Dummy_fields::JSON);
+
+        namespace Objects_fields {
+            NewUIntField(IntField1);
+            NewUIntField(IntField2);
+            NewUIntField(IntField3);
+
+            typedef SimpleParsedJSON<
+                IntField1,
+                IntField2,
+                IntField3
+            > JSON;
+        }
+        NewObjectArray(Objects, Objects_fields::JSON);
+
+        namespace Objects2_fields {
+            NewUIntField(IntField21);
+            NewUIntField(IntField22);
+
+            typedef SimpleParsedJSON<
+                IntField21,
+                IntField22
+            > JSON;
+        }
+        NewObjectArray(Objects2, Objects2_fields::JSON);
+
+        typedef SimpleParsedJSON<
+            Dummy,
+            Objects,
+            Objects2
+        > JSON;
+    }
+    NewObjectArray(OuterObjects, OuterObjects_fields::JSON);
+
+    typedef SimpleParsedJSON<
+        Objects,
+        OuterObjects
+    > OutputJSON;
+)RAW";
+    spJSON::GeneratorOptions options;
+    options.mergeFields = true;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
 TEST(JSONGen, ArrayOfObjects2WithNulls) {
     string input = R"RAW(
        {
