@@ -212,7 +212,8 @@ private:
     public:
         ObjectField(bool isArray,
                     const std::string& name,
-                    const std::string& indent)
+                    const std::string& indent,
+                    const spJSON::GeneratorOptions& options)
                 : isArray(isArray)
                 , indent(indent)
                 , name(name)
@@ -220,7 +221,8 @@ private:
             string childNamespace = name + "_fields";
             objDefn = std::make_unique<SimpleParsedJSON_Generator>(
                         childNamespace,
-                        indent + "    ");
+                        indent + "    ",
+                        options);
         }
 
         virtual string GetDefinition() {
@@ -242,9 +244,10 @@ private:
         static std::unique_ptr<ObjectField> ObjectType(
                 bool isArray,
                 const std::string& name,
-                const std::string& indent)
+                const std::string& indent,
+                const spJSON::GeneratorOptions& options)
         {
-            return std::make_unique<ObjectField>(isArray, name, indent);
+            return std::make_unique<ObjectField>(isArray, name, indent, options);
         }
 
         virtual std::shared_ptr<SimpleParsedJSON_Generator> ObjectDefn() override {
@@ -450,7 +453,7 @@ public:
                     "SimpleParsedJSON_Generator::StartObject",
                     "Starting a new child object: " << current->first);
 
-            auto objPtr = ObjectField::ObjectType(isArray,current->first,indent);
+            auto objPtr = ObjectField::ObjectType(isArray, current->first, indent, options);
             childObject = objPtr->ObjectDefn();
             childObject->StartObject();
             pendingObject = std::move(objPtr);
