@@ -111,6 +111,11 @@ private:
         virtual ~IFieldType() {}
 
         virtual string GetDefinition() = 0;
+
+        virtual std::shared_ptr<SimpleParsedJSON_Generator> ObjectDefn() {
+            return nullptr;
+        }
+
     };
 
     class BaseField: public IFieldType {
@@ -242,15 +247,15 @@ private:
             return std::make_unique<ObjectField>(isArray, name, indent);
         }
 
-        SimpleParsedJSON_Generator& ObjectDefn() {
-            return *objDefn;
+        virtual std::shared_ptr<SimpleParsedJSON_Generator> ObjectDefn() override {
+            return objDefn;
         }
 
     public:
         std::string indent;
         std::string name;
         bool isArray;
-        unique_ptr<SimpleParsedJSON_Generator> objDefn;
+        shared_ptr<SimpleParsedJSON_Generator> objDefn;
     };
 public:
 
@@ -261,6 +266,7 @@ public:
             : started(false),
               isArray(false),
               childObject(nullptr),
+              pendingObject(nullptr),
               indent(_indent),
               namespaceName(_namespaceName),
               options(opts) {
@@ -272,10 +278,10 @@ public:
     }
 
     SimpleParsedJSON_Generator &ActiveObject() {
-        ObjectField *obj = childObject.get();
+        SimpleParsedJSON_Generator *obj = childObject.get();
 
         if (obj) {
-            return obj->ObjectDefn().ActiveObject();
+            return obj->ActiveObject();
         } else {
             return *this;
         }
@@ -424,21 +430,30 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::StartObject",
                     "forwarding to existing child object...");
-            childObject->ObjectDefn().StartObject();
-        } else if (KnownType()) {
+            childObject->StartObject();
+        } else if (KnownType() && options.mergeFields == false) {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::StartObject",
                     "Skipping object, we already know the type: "
                             << namespaceName << "::" << current->first)
+        } else if (KnownType() && options.mergeFields == true) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::StartObject",
+                    "Resuming known object: "
+                            << namespaceName << "::" << current->first)
+            childObject = current->second->ObjectDefn();
         } else {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::StartObject",
                     "Starting a new child object: " << current->first);
 
-            childObject = ObjectField::ObjectType(isArray,current->first,indent);
-            childObject->ObjectDefn().StartObject();
+            auto objPtr = ObjectField::ObjectType(isArray,current->first,indent);
+            childObject = objPtr->ObjectDefn();
+            childObject->StartObject();
+            pendingObject = std::move(objPtr);
         }
         return true;
     }
@@ -455,24 +470,37 @@ public:
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Terminated the object itself");
-        } else if (childObject->ObjectDefn().ParsingChildObject()) {
+        } else if (childObject->ParsingChildObject()) {
             LOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Forwarding to child object...");
-            childObject->ObjectDefn().EndObject(memberCount);
-        } else if (KnownType()) {
+            childObject->EndObject(memberCount);
+        } else if (KnownType() && options.mergeFields == false) {
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Skipping end object, for object of known type..."
                             << namespaceName << "::" << current->first)
+        } else if (KnownType() && options.mergeFields == true) {
+            SLOG_FROM(
+                    LOG_VERY_VERBOSE,
+                    "SimpleParsedJSON_Generator::EndObject",
+                    "Completed object, again: "
+                            << namespaceName << "::" << current->first)
+            childObject.reset((SimpleParsedJSON_Generator*)nullptr);
         } else {
-            current->second = std::move(childObject);
             SLOG_FROM(
                     LOG_VERY_VERBOSE,
                     "SimpleParsedJSON_Generator::EndObject",
                     "Finished processing child object, " << current->first);
+            childObject->EndObject(memberCount);
+
+            if (pendingObject.get()) {
+                current->second.reset(pendingObject.release());
+                pendingObject.reset(nullptr);
+            }
+            childObject.reset((SimpleParsedJSON_Generator*)nullptr);
         }
         return true;
     }
@@ -532,10 +560,11 @@ public:
     }
 
 private:
-    bool started; // Indicates if we have found the start of the outer object yet
-    bool isArray; // Indicates if the field currently being scanned is an array
+    bool started;     // Indicates if we have found the start of the outer object yet
+    bool isArray;     // Indicates if the field currently being scanned is an array
 
-    unique_ptr<ObjectField> childObject;
+    shared_ptr<SimpleParsedJSON_Generator> childObject;
+    std::unique_ptr<ObjectField> pendingObject;
 
     typedef std::map<std::string,std::unique_ptr<IFieldType>> Keys;
     Keys keys;
