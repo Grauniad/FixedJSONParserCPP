@@ -153,8 +153,10 @@ namespace spJSON {
         GeneratorOptions() {
             // defaults...
             ignoreNull = false;
+            mergeFields = false;
         }
         bool ignoreNull;
+        bool mergeFields;
     };
 
      /** 

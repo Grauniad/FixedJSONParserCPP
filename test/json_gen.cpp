@@ -584,7 +584,7 @@ TEST(JSONGen, ArrayOfObjects) {
               "indices": [
                 58,
                 80
-              ]
+             ]
             },
             {
               "url": "http://t.co/LU8T7vmU3h",
@@ -623,6 +623,195 @@ TEST(JSONGen, ArrayOfObjects) {
     string output = spJSON::Gen("OutputJSON", input);
 
     ASSERT_EQ(output , expected);
+}
+
+TEST(JSONGen, ArrayOfObjects_NoMerge) {
+    string input = R"RAW(
+       {
+          "id": 505874924095815700,
+          "urls": [
+            {
+              "url": "http://t.co/QMLJeFmfMT",
+              "expanded_url": "http://www.pixiv.net/member.php?id=4776",
+              "display_url": "pixiv.net/member.php?id=…",
+              "indices": [
+                58,
+                80
+             ]
+            },
+            {
+              "url": "http://t.co/LU8T7vmU3h",
+              "expanded_url": "http://ask.fm/KATANA77",
+              "display_url": "ask.fm/KATANA77",
+              "new_string": "This shouldn't be int the parse"
+            }
+          ],
+          "created_at": "Sun Aug 31 00:29:15 +0000 2014"
+       }
+    )RAW";
+    string expected =
+            "    NewStringField(created_at);\n"
+                    "    NewUI64Field(id);\n"
+                    "\n"
+                    "    namespace urls_fields {\n"
+                    "        NewStringField(display_url);\n"
+                    "        NewStringField(expanded_url);\n"
+                    "        NewUIntArrayField(indices);\n"
+                    "        NewStringField(url);\n"
+                    "\n"
+                    "        typedef SimpleParsedJSON<\n"
+                    "            display_url,\n"
+                    "            expanded_url,\n"
+                    "            indices,\n"
+                    "            url\n"
+                    "        > JSON;\n"
+                    "    }\n"
+                    "    NewObjectArray(urls, urls_fields::JSON);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        created_at,\n"
+                    "        id,\n"
+                    "        urls\n"
+                    "    > OutputJSON;\n";
+
+    string output = spJSON::Gen("OutputJSON", input);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONGen, ArrayOfObjects_Merge) {
+    string input = R"RAW(
+       {
+          "id": 505874924095815700,
+          "urls": [
+            {
+              "url": "http://t.co/QMLJeFmfMT",
+              "expanded_url": "http://www.pixiv.net/member.php?id=4776",
+              "display_url": "pixiv.net/member.php?id=…",
+              "indices": [
+                58,
+                80
+             ]
+            },
+            {
+              "url": "http://t.co/LU8T7vmU3h",
+              "expanded_url": "http://ask.fm/KATANA77",
+              "display_url": "ask.fm/KATANA77",
+              "new_string": "This shouldn't be int the parse"
+            }
+          ],
+          "created_at": "Sun Aug 31 00:29:15 +0000 2014"
+       }
+    )RAW";
+    string expected =
+            "    NewStringField(created_at);\n"
+                    "    NewUI64Field(id);\n"
+                    "\n"
+                    "    namespace urls_fields {\n"
+                    "        NewStringField(display_url);\n"
+                    "        NewStringField(expanded_url);\n"
+                    "        NewUIntArrayField(indices);\n"
+                    "        NewStringField(new_string);\n"
+                    "        NewStringField(url);\n"
+                    "\n"
+                    "        typedef SimpleParsedJSON<\n"
+                    "            display_url,\n"
+                    "            expanded_url,\n"
+                    "            indices,\n"
+                    "            new_string,\n"
+                    "            url\n"
+                    "        > JSON;\n"
+                    "    }\n"
+                    "    NewObjectArray(urls, urls_fields::JSON);\n"
+                    "\n"
+                    "    typedef SimpleParsedJSON<\n"
+                    "        created_at,\n"
+                    "        id,\n"
+                    "        urls\n"
+                    "    > OutputJSON;\n";
+
+    spJSON::GeneratorOptions options;
+    options.mergeFields = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONGen, ArrayOfObjects_MergeNull) {
+string input = R"RAW(
+       {
+          "id": 505874924095815700,
+          "urls": [
+            null,
+            {
+            },
+            {
+              "url": null,
+              "expanded_url": null,
+              "display_url": null,
+              "indices": null
+            },
+            {
+              "indices": [null]
+            },
+            {
+              "url": "http://t.co/QMLJeFmfMT",
+              "expanded_url": "http://www.pixiv.net/member.php?id=4776",
+              "display_url": "pixiv.net/member.php?id=…",
+              "indices": [
+                58,
+                80
+             ]
+            },
+            {
+              "url": "http://t.co/LU8T7vmU3h",
+              "expanded_url": "http://ask.fm/KATANA77",
+              "display_url": "ask.fm/KATANA77",
+              "new_string": "This shouldn't be int the parse"
+            },
+            {
+              "url": null,
+              "expanded_url": null,
+              "display_url": null,
+              "indices": null
+            }
+          ],
+          "created_at": "Sun Aug 31 00:29:15 +0000 2014"
+       }
+    )RAW";
+string expected =
+        "    NewStringField(created_at);\n"
+                "    NewUI64Field(id);\n"
+                "\n"
+                "    namespace urls_fields {\n"
+                "        NewStringField(display_url);\n"
+                "        NewStringField(expanded_url);\n"
+                "        NewUIntArrayField(indices);\n"
+                "        NewStringField(new_string);\n"
+                "        NewStringField(url);\n"
+                "\n"
+                "        typedef SimpleParsedJSON<\n"
+                "            display_url,\n"
+                "            expanded_url,\n"
+                "            indices,\n"
+                "            new_string,\n"
+                "            url\n"
+                "        > JSON;\n"
+                "    }\n"
+                "    NewObjectArray(urls, urls_fields::JSON);\n"
+                "\n"
+                "    typedef SimpleParsedJSON<\n"
+                "        created_at,\n"
+                "        id,\n"
+                "        urls\n"
+                "    > OutputJSON;\n";
+
+spJSON::GeneratorOptions options;
+options.mergeFields = true;
+options.ignoreNull = true;
+string output = spJSON::Gen("OutputJSON", input, options);
+
+ASSERT_EQ(output , expected);
 }
 
 TEST(JSONGen, ArrayOfObjects2) {
@@ -679,6 +868,250 @@ R"RAW(
     > OutputJSON;
 )RAW";
     string output = spJSON::Gen("OutputJSON", input);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONGen, ArrayOfObjects2_NoMerge) {
+string input = R"RAW(
+       {
+            "OuterObjects": [
+                {
+                    "Objects": [
+                        {
+                            "IntField1": 1
+                        },
+                        {
+                            "IntField2": 2
+                        }
+                    ]
+                },
+                {
+                    "Objects": [
+                        {
+                            "IntField1": 3
+                        },
+                        {
+                            "IntField2": 4
+                        },
+                        {
+                            "IntField3": 5
+                        }
+                    ]
+                }
+            ]
+       }
+    )RAW";
+string expected =
+        R"RAW(
+    namespace OuterObjects_fields {
+
+        namespace Objects_fields {
+            NewUIntField(IntField1);
+
+            typedef SimpleParsedJSON<
+                IntField1
+            > JSON;
+        }
+        NewObjectArray(Objects, Objects_fields::JSON);
+
+        typedef SimpleParsedJSON<
+            Objects
+        > JSON;
+    }
+    NewObjectArray(OuterObjects, OuterObjects_fields::JSON);
+
+    typedef SimpleParsedJSON<
+        OuterObjects
+    > OutputJSON;
+)RAW";
+    spJSON::GeneratorOptions options;
+    options.mergeFields = false;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+ASSERT_EQ(output , expected);
+}
+
+TEST(JSONGen, ArrayOfObjects2_Merge) {
+    string input = R"RAW(
+           {
+                "OuterObjects": [
+                    {
+                        "Objects": [
+                            {
+                                "IntField1": 1
+                            },
+                            {
+                                "IntField2": 2
+                            }
+                        ]
+                    },
+                    {
+                        "Objects": [
+                            {
+                                "IntField1": 3
+                            },
+                            {
+                                "IntField2": 4
+                            },
+                            {
+                                "IntField3": 5
+                            }
+                        ]
+                    }
+                ]
+           }
+        )RAW";
+    string expected =
+            R"RAW(
+    namespace OuterObjects_fields {
+
+        namespace Objects_fields {
+            NewUIntField(IntField1);
+            NewUIntField(IntField2);
+            NewUIntField(IntField3);
+
+            typedef SimpleParsedJSON<
+                IntField1,
+                IntField2,
+                IntField3
+            > JSON;
+        }
+        NewObjectArray(Objects, Objects_fields::JSON);
+
+        typedef SimpleParsedJSON<
+            Objects
+        > JSON;
+    }
+    NewObjectArray(OuterObjects, OuterObjects_fields::JSON);
+
+    typedef SimpleParsedJSON<
+        OuterObjects
+    > OutputJSON;
+)RAW";
+    spJSON::GeneratorOptions options;
+    options.mergeFields = true;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
+
+    ASSERT_EQ(output , expected);
+}
+
+TEST(JSONGen, ArrayOfObjects2_MultiMerge) {
+    string input = R"RAW(
+           {
+                "OuterObjects": [
+                    {
+                        "Objects": [
+                            {
+                                "IntField1": 1
+                            },
+                            {
+                                "IntField2": 2
+                            }
+                        ],
+                        "Objects2": [
+                            {
+                                "IntField21": 1
+                            },
+                            {
+                                "IntField22": 2
+                            }
+                        ]
+                    },
+                    {
+                        "Dummy": {
+                            "dummyField": "String"
+                        },
+                        "Objects": [
+                            {
+                                "IntField1": 3
+                            },
+                            {
+                                "IntField2": 4
+                            },
+                            {
+                                "IntField3": 5
+                            }
+                        ]
+                    }
+                ],
+                "Objects": [
+                    {
+                        "outer1": 1
+                    },
+                    {
+                        "outer2": 2
+                    }
+                ]
+           }
+        )RAW";
+    string expected =
+            R"RAW(
+    namespace Objects_fields {
+        NewUIntField(outer1);
+        NewUIntField(outer2);
+
+        typedef SimpleParsedJSON<
+            outer1,
+            outer2
+        > JSON;
+    }
+    NewObjectArray(Objects, Objects_fields::JSON);
+
+    namespace OuterObjects_fields {
+
+        namespace Dummy_fields {
+            NewStringField(dummyField);
+
+            typedef SimpleParsedJSON<
+                dummyField
+            > JSON;
+        }
+        NewEmbededObject(Dummy, Dummy_fields::JSON);
+
+        namespace Objects_fields {
+            NewUIntField(IntField1);
+            NewUIntField(IntField2);
+            NewUIntField(IntField3);
+
+            typedef SimpleParsedJSON<
+                IntField1,
+                IntField2,
+                IntField3
+            > JSON;
+        }
+        NewObjectArray(Objects, Objects_fields::JSON);
+
+        namespace Objects2_fields {
+            NewUIntField(IntField21);
+            NewUIntField(IntField22);
+
+            typedef SimpleParsedJSON<
+                IntField21,
+                IntField22
+            > JSON;
+        }
+        NewObjectArray(Objects2, Objects2_fields::JSON);
+
+        typedef SimpleParsedJSON<
+            Dummy,
+            Objects,
+            Objects2
+        > JSON;
+    }
+    NewObjectArray(OuterObjects, OuterObjects_fields::JSON);
+
+    typedef SimpleParsedJSON<
+        Objects,
+        OuterObjects
+    > OutputJSON;
+)RAW";
+    spJSON::GeneratorOptions options;
+    options.mergeFields = true;
+    options.ignoreNull = true;
+    string output = spJSON::Gen("OutputJSON", input, options);
 
     ASSERT_EQ(output , expected);
 }
