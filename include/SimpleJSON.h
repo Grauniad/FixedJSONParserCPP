@@ -198,31 +198,28 @@ struct FieldBase {
      *                      Default Type Error Interface
      *                 (see SimpleParsedJSON class for details)
      *****************************************************************************/
-    virtual bool Key(const char* str, rapidjson::SizeType length, bool copy);
+    virtual bool Key(const char* str, rapidjson::SizeType length, bool copy) override;
+    virtual bool String(const char* str, rapidjson::SizeType length, bool copy) override;
+    virtual bool Int(int i) override;
+         
+    virtual bool Uint(unsigned u) override;
 
-    virtual bool String(const char* str, rapidjson::SizeType length, bool copy);
+    virtual bool Double(double d) override;
+     
+    virtual bool StartObject() override;
 
-    virtual bool Int(int i);
+    virtual bool EndObject(rapidjson::SizeType memberCount) override;
 
-    virtual bool Uint(unsigned u);
+    virtual bool Null() override;
 
-    virtual bool Double(double d);
+    virtual bool Bool(bool b) override;
+    virtual bool Int64(int64_t i) override;
 
-    virtual bool StartObject();
+    virtual bool Uint64(uint64_t u) override;
 
-    virtual bool EndObject(rapidjson::SizeType memberCount);
+    virtual bool StartArray() override;
 
-    virtual bool Null();
-
-    virtual bool Bool(bool b);
-
-    virtual bool Int64(int64_t i);
-
-    virtual bool Uint64(uint64_t u);
-
-    virtual bool StartArray();
-
-    virtual bool EndArray(rapidjson::SizeType elementCount);
+    virtual bool EndArray(rapidjson::SizeType elementCount) override;
 
 
 };
