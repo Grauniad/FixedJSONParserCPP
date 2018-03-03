@@ -89,3 +89,27 @@ install (
     FILES       ${FixedJSON_BINARY_DIR}/FixedJSONConfigVersion.cmake
     DESTINATION lib/cmake/FixedJSON
 )
+
+#
+# Finally export the Config which CMake will use
+# when looking for matching libraries to link against.
+#
+install (
+    FILES       FixedJSONConfig.cmake
+    DESTINATION lib/cmake/FixedJSON
+)
+
+#
+# Configure Coverage Build
+#
+SET(CMAKE_CXX_FLAGS_COVERAGE
+    "${GCC_DEBUG_FLAGS} -fprofile-arcs -ftest-coverage"
+    CACHE STRING "Flags used by the C++ compiler during coverage builds."
+    FORCE )
+SET(CMAKE_C_FLAGS_COVERAGE
+    "${GCC_DEBUG_FLAGS} -fprofile-arcs -ftest-coverage"
+    CACHE STRING "Flags used by the C compiler during coverage builds."
+    FORCE )
+MARK_AS_ADVANCED(
+    CMAKE_CXX_FLAGS_COVERAGE
+    CMAKE_C_FLAGS_COVERAGE)
