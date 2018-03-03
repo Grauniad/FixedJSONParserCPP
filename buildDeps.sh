@@ -50,5 +50,4 @@ for dep in ${deps[@]} ; do
 
     popd || exit 1
     popd || exit 1
-    done
-exit 1
+done
