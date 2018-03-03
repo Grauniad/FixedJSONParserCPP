@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <algorithm>
 #include <map>
 #include <memory>
 
@@ -98,6 +99,7 @@ public:
      * Return the current object as a JSON string, and reset the builder.
      */
     std::string GetAndClear();
+
 private:
     /*****************************************************
      *       Add Anonymous Data
@@ -208,7 +210,11 @@ struct FieldBase {
 
     virtual bool Double(double d);
 
-    virtual bool StartObject();
+    /**
+     * Start a new object
+     * @return The Field object responsible for parsing fields in this object
+     */
+    virtual FieldBase* StartObject();
 
     virtual bool EndObject(rapidjson::SizeType memberCount);
 
@@ -368,6 +374,11 @@ public:
      */
     std::string GetPrettyJSONString(bool nullIfNotSupplied = false);
 
+    /*
+     * TODO: Get this off of the public API
+     */
+    FieldBase* GetCurrentField();
+
     /**************************************************************************
      *                      Rapid JSON Implementation
      *                     (see .hpp file for details)
@@ -416,11 +427,16 @@ private:
      **************************************************************************/
 
     struct FieldInfo {
-        FieldBase* const field;
-        const char* const name;
+        FieldBase* field;
+        const char* name;
+        FieldInfo(FieldBase* f): field(f), name(f->Name()) {}
+        // TODO: This is only to allow set search - get rid of it!
+        FieldInfo(const char* name): field(nullptr), name(name) {}
+
+        FieldInfo(const FieldInfo& rhs) = default;
     };
 
-    FieldInfo* Get(const char* fieldName);
+    FieldInfo* Get(const char* fieldName, const size_t& len);
 
     /**************************************************************************
      *                      Runtime initialisation
@@ -478,18 +494,73 @@ private:
      *                      Internal Data
      **************************************************************************/
 
-    // The field currently being passes
+    // The field currently being passed
     FieldInfo* currentField;
 
     // Our complete set of fields
     std::tuple<Fields...> fields;
 
-    // The map from field name to the its location within the tuple.
-    typedef std::map<std::string,FieldInfo> FieldMap;
-    FieldMap fieldMap;
+    class FastFieldMap {
+    public:
+        FieldInfo* Get(const char* name, const size_t& len) {
+            FieldInfo* info = nullptr;
+            Item findMe(name, len);
+            Sort();
+            auto it = std::lower_bound(fields.begin(), fields.end(), findMe);
+
+            if (it != fields.end() && (findMe == (*it))) {
+                info = &(it->info);
+            }
+
+            return info;
+        }
+
+        void Clear() {
+            for (auto& item: fields) {
+                item.info.field->Clear();
+            }
+        }
+
+        void Put(FieldBase* field ) {
+            sorted = false;
+            Item item (field);
+            fields.push_back(item);
+        }
+
+    private:
+        void Sort() {
+            if (!sorted) {
+                std::sort(fields.begin(), fields.end());
+                sorted = true;
+            }
+        }
+        bool sorted;
+        struct Item {
+            FieldInfo info;
+
+            Item(FieldBase* field)
+              :info(field) { }
+
+            Item(const char* field, size_t len)
+                :info(field) { }
+
+            Item(const Item& rhs) = default;
+            Item& operator=(const Item& rhs) = default;
+
+            bool operator <(const Item& rhs) const {
+                return (strcmp(info.name, rhs.info.name) < 0);
+            }
+            bool operator ==(const Item& rhs) const {
+                return (strcmp(info.name, rhs.info.name) == 0);
+            }
+        };
+        std::vector<Item> fields;
+    };
+    FastFieldMap fastFields;
 
     // Tracks if we are in a sub-object 
     size_t depth;
+    std::vector<FieldBase*> objectStack;
 
     // Tracks if we are currently handling an array...
     bool isArray;

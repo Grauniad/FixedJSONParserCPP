@@ -35,6 +35,20 @@ target_include_directories(FixedJSON PUBLIC
     $<BUILD_INTERFACE:${RapidJSON_INCLUDE_DIRS}>
     $<INSTALL_INTERFACE:include>
 )
+#
+# Generator
+#
+add_executable(jsonGen src/jsonGen.cpp)
+target_link_libraries(jsonGen FixedJSON UtilTime::Time)
+
+#
+# Benchmarks
+#
+add_executable(example_dom benchmarks/example_dom.cpp)
+target_link_libraries(example_dom FixedJSON UtilTime::Time)
+
+add_executable(glossary_dom benchmarks/glossary_dom.cpp)
+target_link_libraries(glossary_dom FixedJSON UtilTime::Time)
 
 #
 # Test Configuration
