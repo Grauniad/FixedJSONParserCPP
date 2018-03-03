@@ -5,38 +5,33 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
       - george-edison55-precise-backports
+      - boost-latest
     packages:
-      - g++-5
       - cmake
       - cmake-data
+      - g++-6
+      - libgtest-dev
+      - libboost1.55-all-dev
       - valgrind
 
 
 before_install:
-  - git submodule update --init --recursive
+  - git clone --recursive https://github.com/Grauniad/CMakeUtils.git
+  - cd CMakeUtils
+  - ./travis/installGTest.sh
+  - cd ..
+  - ./buildDeps.sh
 
 install:
   - pip install --user cpp-coveralls
-  - pip install --user urllib3[secure]
-  - export CXX="g++-5"
-  - export CC="gcc-5"
-  
+  - export CXX="g++-6"
+  - export CC="gcc-6"
+
 script: 
-  - g++-5 --version
-  - cmake --version
-  - mkdir Build
-  - cd Build 
-  - cmake ..
-  - make
+  - g++-6 --version
+  - ./buildFromDeps.sh
+  - cd Build
   - make test
   - ctest -T Memcheck
   - cd ..
-  - mkdir Coverage
-  - cd Coverage 
-  - cmake -DCMAKE_BUILD_TYPE=Coverage --build . ..
-  - make
-  - make test 
-  - cd ..
-
-after_success:
-  - coveralls -r . -b Coverage -e dep -e Build -e test --gcov gcov-5 --verbose 
+  - COVERALLS_FLAGS="" ./CMakeUtils/travis/doCoverage.sh
