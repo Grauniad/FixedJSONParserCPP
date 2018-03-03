@@ -42,8 +42,6 @@ for dep in ${deps[@]} ; do
 
     pushd deps/$dep || exit 1
     git pull
-    git submodule init
-    git submodule update
     pushd build || exit 1
 
     cmake -DCMAKE_BUILD_TYPE=Release "-DCMAKE_PREFIX_PATH:PATH=$DEPS_CMAKE_DEPO" "-DCMAKE_INSTALL_PREFIX:PATH=$DEPS_BUILD" .. || exit 1
