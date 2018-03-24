@@ -255,9 +255,9 @@ private:
         }
 
     public:
+        bool isArray;
         std::string indent;
         std::string name;
-        bool isArray;
         shared_ptr<SimpleParsedJSON_Generator> objDefn;
     };
 public:
@@ -509,7 +509,6 @@ public:
     }
 
     bool Null() {
-        auto &active = ActiveObject();
         if (options.ignoreNull == false) {
             throw "TODO!";
         } else {

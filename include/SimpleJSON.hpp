@@ -769,7 +769,6 @@ template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Parse(const char* json, std::string& errMsg) {
     class RapidJSONParser: public IParser {
         virtual void Parse(const char* json, SimpleParsedJSON<Fields...>& spj) {
-            bool ok = true;
             rapidjson::StringStream ss(json);
             rapidjson::Reader reader;
             rapidjson::ParseResult result = reader.Parse(ss,spj);

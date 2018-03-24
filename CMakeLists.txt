@@ -35,6 +35,11 @@ target_include_directories(FixedJSON PUBLIC
     $<BUILD_INTERFACE:${RapidJSON_INCLUDE_DIRS}>
     $<INSTALL_INTERFACE:include>
 )
+
+set_property(TARGET FixedJSON PROPERTY PUBLIC_HEADER
+    ${FixedJSON_SOURCE_DIR}/include/SimpleJSON.h
+    ${FixedJSON_SOURCE_DIR}/include/SimpleJSON.hpp
+)
 #
 # Generator
 #

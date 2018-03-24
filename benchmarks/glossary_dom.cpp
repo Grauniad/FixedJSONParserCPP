@@ -122,6 +122,8 @@ std::string NativeRapidJSON(const char* json) {
             }
         }
     }
+
+    return "";
 }
 
 int main(int argc, char **argv) {
