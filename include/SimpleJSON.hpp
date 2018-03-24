@@ -156,7 +156,7 @@ struct StringField: public FieldBase {
 
     virtual void Clear() {
         FieldBase::Clear();
-        value = "";
+        value.clear();
     }
 
     bool String(const char* str, rapidjson::SizeType length, bool copy) {
@@ -480,10 +480,22 @@ struct EmbededObjectField: public FieldBase {
 
         return true;
     }
-    bool StartObject() {
-        ++depth;
-        value.StartObject();
-        return true;
+    FieldBase* StartObject() override {
+        FieldBase* current = nullptr;
+
+        if (depth == 0) {
+            depth = 1;
+            value.StartObject();
+            current = this;
+        } else if (depth == 1) {
+            ++depth;
+            current = value.GetCurrentField()->StartObject();
+        } else {
+            // TODO - obviously this rearchitecture needs some cleaning up
+            //        once the basic wiring is working
+            throw spJSON::ParseError();
+        }
+        return current;
     }
 
     bool EndObject(rapidjson::SizeType memberCount) {
@@ -611,16 +623,24 @@ struct ObjectArray: public FieldBase {
      *     Rapid JSON Interface
      *******************************/ 
 
-    bool StartObject() {
-        if (depth > 0) {
-            ++depth;
-            value.back()->StartObject();
-        } else {
+    FieldBase* StartObject() {
+        FieldBase* activeObject = nullptr;
+
+        // TODO: EWWWWW! So much EWWW! We need to make this not a performance killer
+        if (depth == 0) {
             depth = 1;
             value.emplace_back();
             value.back()->StartObject();
+            activeObject = this;
+        } else if (depth == 1) {
+            // TODO: Although it seems counter-intuative, we haven't increased the depth
+            //       The reason is that by returning the child's active object all
+            //       calls (including the EndObject) will by-pass the array
+            activeObject = value.back()->GetCurrentField()->StartObject();
+        } else {
+            throw spJSON::ParseError{};
         }
-        return true;
+        return activeObject;
     }
 
     bool Null() {
@@ -749,7 +769,6 @@ template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Parse(const char* json, std::string& errMsg) {
     class RapidJSONParser: public IParser {
         virtual void Parse(const char* json, SimpleParsedJSON<Fields...>& spj) {
-            bool ok = true;
             rapidjson::StringStream ss(json);
             rapidjson::Reader reader;
             rapidjson::ParseResult result = reader.Parse(ss,spj);
@@ -789,9 +808,8 @@ void SimpleParsedJSON<Fields...>::Clear() {
     depth = 0;
     currentField = nullptr;
     isArray = false;
-    for (auto& item: fieldMap) {
-        item.second.field->Clear();
-    }
+    fastFields.Clear();
+    objectStack.clear();
 }
 
 template <class...Fields>
@@ -819,12 +837,8 @@ bool SimpleParsedJSON<Fields...>::StartObject() {
     if ( depth == 0) {
         ++depth;
     } else {
-        if ( currentField != nullptr) {
-            ++depth;
-            currentField->field->StartObject();
-        } else {
-            throw spJSON::UnknownTypeError();
-        }
+        ++depth;
+        objectStack.push_back(GetCurrentField()->StartObject());
     }
     return true;
 }
@@ -837,8 +851,9 @@ template <class...Fields>
 bool SimpleParsedJSON<Fields...>::EndObject(rapidjson::SizeType memberCount) {
     if ( depth == 1) {
         --depth;
-    } else if (depth > 1 && currentField) {
-        currentField->field->EndObject(memberCount);
+    } else if (depth > 1 && objectStack.empty() == false) {
+        objectStack.back()->EndObject(memberCount);
+        objectStack.pop_back();
         --depth;
     } else {
         throw spJSON::ParseError();
@@ -859,10 +874,10 @@ bool SimpleParsedJSON<Fields...>::Key(
     rapidjson::SizeType length,
     bool copy)
 {
-    if (currentField && depth > 1 ) {
-        currentField->field->Key(str,length,copy);
+    if (objectStack.size() > 0) {
+        objectStack.back()->Key(str,length,copy);
     } else {
-        currentField = Get(str);
+        currentField = Get(str, length);
 
         if (!currentField) {
             throw spJSON::UnknownFieldError {str} ;
@@ -890,11 +905,7 @@ bool SimpleParsedJSON<Fields...>::String(
     rapidjson::SizeType length,
     bool copy)
 {
-    if (currentField) {
-        currentField->field->String(str,length,copy);
-    } else {
-        throw spJSON::ParseError();
-    }
+    GetCurrentField()->String(str, length, copy);
 
     return true;
 }
@@ -911,22 +922,13 @@ bool SimpleParsedJSON<Fields...>::RawNumber(const char *str, size_t len, bool co
  */
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Int(int i) {
-    if (currentField) {
-        currentField->field->Int(i);
-    } else {
-        throw spJSON::ParseError();
-    }
+    GetCurrentField()->Int(i);
     return true;
 }
 
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Int64(int64_t i) {
-    if (currentField) {
-        currentField->field->Int64(i);
-    } else {
-        throw spJSON::ParseError();
-    }
-
+    GetCurrentField()->Int64(i);
     return true;
 }
 
@@ -939,22 +941,13 @@ bool SimpleParsedJSON<Fields...>::Int64(int64_t i) {
  */
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Uint(unsigned u) {
-    if (currentField) {
-        currentField->field->Uint(u);
-    } else {
-        throw spJSON::ParseError();
-    }
+    GetCurrentField()->Uint(u);
     return true;
 }
 
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Uint64(uint64_t u) {
-    if (currentField) {
-        currentField->field->Uint64(u);
-    } else {
-        throw spJSON::ParseError();
-    }
-
+    GetCurrentField()->Uint64(u);
     return true;
 }
 
@@ -966,11 +959,7 @@ bool SimpleParsedJSON<Fields...>::Uint64(uint64_t u) {
  */
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Double(double d) {
-    if (currentField) {
-        currentField->field->Double(d);
-    } else {
-        throw spJSON::ParseError();
-    }
+    GetCurrentField()->Double(d);
     return true;
 }
 
@@ -981,33 +970,19 @@ bool SimpleParsedJSON<Fields...>::Double(double d) {
  */
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Bool(bool b) {
-    if (currentField) {
-        currentField->field->Bool(b);
-    } else {
-        throw spJSON::ParseError();
-    }
+    GetCurrentField()->Bool(b);
     return true;
 }
 
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::StartArray() {
-    if (currentField) {
-        currentField->field->StartArray();
-    } else {
-        throw spJSON::ParseError();
-    }
-
+    GetCurrentField()->StartArray();
     return true;
 }
 
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::EndArray(rapidjson::SizeType elementCount) {
-    if (currentField) {
-        currentField->field->EndArray(elementCount);
-    } else {
-        throw spJSON::ParseError();
-    }
-
+    GetCurrentField()->EndArray(elementCount);
     return true;
 }
 
@@ -1016,12 +991,7 @@ bool SimpleParsedJSON<Fields...>::EndArray(rapidjson::SizeType elementCount) {
  *****************************************************************************/
 template <class...Fields>
 bool SimpleParsedJSON<Fields...>::Null() {
-    if (currentField) {
-        currentField->field->Null();
-    } else {
-        throw spJSON::ParseError();
-    }
-
+    GetCurrentField()->Null();
     return true;
 }
 
@@ -1032,11 +1002,7 @@ template <class...Fields>
 template <int idx>
 void SimpleParsedJSON<Fields...>::AddField() {
     auto& field = std::get<idx>(fields);
-    typename FieldMap::value_type item(
-            field.Name(),
-            { &field, field.Name() }
-        );
-    fieldMap.insert(std::move(item));
+    fastFields.Put(&field);
 }
 
 template<class ...Fields>
@@ -1145,12 +1111,18 @@ inline void SimpleParsedJSON<Fields...>::PrintField(Builder& builder, bool nullI
 
 template <class...Fields>
 typename SimpleParsedJSON<Fields...>::FieldInfo*
-SimpleParsedJSON<Fields...>::Get(const char* fieldName)  {
-    auto it = fieldMap.find(fieldName);
-    if ( it != fieldMap.end()) {
-        return &it->second;
+SimpleParsedJSON<Fields...>::Get(const char* fieldName, const size_t& len)  {
+    return fastFields.Get(fieldName, len);
+}
+
+template <class...Fields>
+FieldBase *SimpleParsedJSON<Fields...>::GetCurrentField() {
+    if (objectStack.size() > 0) {
+        return objectStack.back();
+    } else if (currentField) {
+        return currentField->field;
     } else {
-        return nullptr;
+        throw spJSON::ParseError{};
     }
 }
 

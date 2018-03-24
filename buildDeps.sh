@@ -1,5 +1,15 @@
 #!/bin/bash
 
+DEPS_BUILD=$PWD/deps/build
+if [[ "$1" == "" ]]; then
+    echo "No install directory provided, falling back to: $DEPS_BUILD"
+else
+    DEPS_BUILD=$1
+fi
+
+DEPS_CMAKE_DEPO=$DEPS_BUILD/lib/cmake
+mkdir -p $DEPS_BUILD
+
 if [[ -e FixedJSONConfig.cmake ]]; then
     echo "Building dependencies..."
 else
@@ -30,10 +40,6 @@ if [[ -e deps/rapidjson ]]; then
 else
     git clone https://github.com/Tencent/rapidjson.git deps/rapidjson || exit 1
 fi
-
-DEPS_BUILD=$PWD/deps/build
-DEPS_CMAKE_DEPO=$PWD/deps/build/lib/cmake
-mkdir -p $DEPS_BUILD
 
 
 deps=(NSTimestamps OSCPPTools DevToolsLog rapidjson);

@@ -4,6 +4,9 @@
 [![Coverage Status](https://coveralls.io/repos/github/Grauniad/FixedJSONParserCPP/badge.svg?branch=master)](https://coveralls.io/github/Grauniad/FixedJSONParserCPP?branch=master)
 ## Motivation
 
+### FixedJSON
+### Traditional DOM
+
 ## Parse JSON Messages into native types:
 ```c++
 /*

@@ -46,7 +46,7 @@ void FieldBase::Clear() {
     supplied = false;
 }
 
-bool FieldBase::StartObject() {
+FieldBase * FieldBase::StartObject() {
    throw spJSON::WrongTypeError{Name()};
 }
 
@@ -219,7 +219,7 @@ private:
                 , name(name)
         {
             string childNamespace = name + "_fields";
-            objDefn = std::make_unique<SimpleParsedJSON_Generator>(
+            objDefn = std::make_shared<SimpleParsedJSON_Generator>(
                         childNamespace,
                         indent + "    ",
                         options);
@@ -255,9 +255,9 @@ private:
         }
 
     public:
+        bool isArray;
         std::string indent;
         std::string name;
-        bool isArray;
         shared_ptr<SimpleParsedJSON_Generator> objDefn;
     };
 public:
@@ -509,7 +509,6 @@ public:
     }
 
     bool Null() {
-        auto &active = ActiveObject();
         if (options.ignoreNull == false) {
             throw "TODO!";
         } else {
