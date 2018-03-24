@@ -33,4 +33,4 @@ script:
   - make test
   - ctest -T Memcheck
   - cd ..
-  - COVERALLS_FLAGS="-e benchmarks/example_dom.cpp -e benchmarks/example_dom.cpp" ./CMakeUtils/travis/doCoverage.sh
+  - COVERALLS_FLAGS="-e benchmarks/example_dom.cpp -e benchmarks/glossary_dom.cpp" ./CMakeUtils/travis/doCoverage.sh
