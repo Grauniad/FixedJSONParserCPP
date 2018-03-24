@@ -16,3 +16,7 @@ DartConfiguration.tcl
 invalidJson
 Debug
 jsonGen
+
+deps
+Build
+
