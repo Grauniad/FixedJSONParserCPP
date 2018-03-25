@@ -1,15 +1,5 @@
 #!/bin/bash
 
-DEPS_BUILD=$PWD/deps/build
-if [[ "$1" == "" ]]; then
-    echo "No install directory provided, falling back to: $DEPS_BUILD"
-else
-    DEPS_BUILD=$1
-fi
-
-DEPS_CMAKE_DEPO=$DEPS_BUILD/lib/cmake
-mkdir -p $DEPS_BUILD
-
 if [[ -e FixedJSONConfig.cmake ]]; then
     echo "Building dependencies..."
 else
@@ -17,43 +7,21 @@ else
     exit 1
 fi
 
-if [[ -e deps/NSTimestamps ]]; then
-    echo "Existing NSTimestamps directory, no need to clone"
+if [[ "$1" == "" ]]; then
+    DEPS_ROOT="$PWD/deps"
 else
-    git clone https://github.com/Grauniad/NanoSecondTimestamps.git deps/NSTimestamps || exit 1
+    DEPS_ROOT="$1"
+fi
+if [[ -e $DEPS_ROOT/CMakeUtils ]]; then
+    echo "Existing CMakeUtils directory, no need to clone"
+else
+    git clone https://github.com/Grauniad/CMakeUtils.git $DEPS_ROOT/CMakeUtils || exit 1
 fi
 
-if [[ -e deps/OSCPPTools ]]; then
-    echo "Existing OSCPPTools directory, no need to clone"
-else
-    git clone https://github.com/Grauniad/OSCPPTools.git deps/OSCPPTools || exit 1
-fi
+declare -A depList
 
-if [[ -e deps/DevToolsLog ]]; then
-    echo "Existing DevToolsLog directory, no need to clone"
-else
-    git clone https://github.com/Grauniad/LegacyLogger.git deps/DevToolsLog || exit 1
-fi
+depList[Time]=https://github.com/Grauniad/NanoSecondTimestamps.git
+depList[DevToolsLog]=https://github.com/Grauniad/LegacyLogger.git
+depList[rapidjson]=https://github.com/Tencent/rapidjson.git
 
-if [[ -e deps/rapidjson ]]; then
-    echo "Existing rapidjson directory, no need to clone"
-else
-    git clone https://github.com/Tencent/rapidjson.git deps/rapidjson || exit 1
-fi
-
-
-deps=(NSTimestamps OSCPPTools DevToolsLog rapidjson);
-for dep in ${deps[@]} ; do
-    mkdir -p deps/$dep/build
-
-    pushd deps/$dep || exit 1
-    git pull
-    pushd build || exit 1
-
-    cmake -DCMAKE_BUILD_TYPE=Release "-DCMAKE_PREFIX_PATH:PATH=$DEPS_CMAKE_DEPO" "-DCMAKE_INSTALL_PREFIX:PATH=$DEPS_BUILD" .. || exit 1
-    make -j 3 || exit 1
-    make install || exit 1
-
-    popd || exit 1
-    popd || exit 1
-done
+source $DEPS_ROOT/CMakeUtils/build_tools/buildDepsCommon.sh || exit 1
