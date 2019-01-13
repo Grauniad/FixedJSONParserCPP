@@ -578,7 +578,56 @@ struct ObjectArray: public FieldBase {
     private:
         std::unique_ptr<JSON> ptr;
     };
-    typedef std::vector<pJSON> ValueType;
+    class ValueType: private std::vector<pJSON> {
+    public:
+        using Vector = std::vector<pJSON>;
+        using Vector::operator[];
+        using Vector::clear;
+        using Vector::size;
+        using Vector::resize;
+        using Vector::reserve;
+        using Vector::push_back;
+        using Vector::emplace;
+        using Vector::emplace_back;
+        using Vector::back;
+        using Vector::front;
+        using Vector::begin;
+        using Vector::cbegin;
+        using Vector::rbegin;
+        using Vector::crbegin;
+        using Vector::end;
+        using Vector::cend;
+        using Vector::rend;
+        using Vector::crend;
+
+        void ClearToCache(const size_t& maxCacheSize) {
+            if (maxCacheSize > cache.size()) {
+                size_t toCache = size();
+                const size_t existingCacheSize = cache.size();
+                if ( (toCache + existingCacheSize) > maxCacheSize) {
+                    toCache = maxCacheSize - existingCacheSize;
+                }
+
+                for (size_t i = 0; i < toCache; ++i) {
+                    cache.emplace_back(std::move((*this)[i]));
+                }
+            } else {
+                cache.resize(maxCacheSize);
+            }
+            clear();
+        }
+
+        void InsertAtBack() {
+            if (cache.size() > 0) {
+                push_back(std::move(cache.back()));
+                cache.pop_back();
+            } else {
+                push_back({});
+            }
+        }
+
+        Vector cache;
+    };
     ValueType value;
 
     int depth;
@@ -629,7 +678,7 @@ struct ObjectArray: public FieldBase {
         // TODO: EWWWWW! So much EWWW! We need to make this not a performance killer
         if (depth == 0) {
             depth = 1;
-            value.emplace_back();
+            value.InsertAtBack();
             value.back()->StartObject();
             activeObject = this;
         } else if (depth == 1) {

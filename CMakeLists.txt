@@ -66,6 +66,9 @@ target_link_libraries(invalidJson FixedJSON GTest::GTest)
 add_executable(json test/json.cpp)
 target_link_libraries(json FixedJSON GTest::GTest)
 
+add_executable(json_object_arrays test/json_object_arrays.cpp)
+target_link_libraries(json_object_arrays FixedJSON GTest::GTest)
+
 add_executable(json_gen test/json_gen.cpp)
 target_link_libraries(json_gen FixedJSON GTest::GTest)
 
@@ -78,6 +81,7 @@ include (CTest)
 
 enable_testing()
 add_test(json json)
+add_test(json_object_arrays json_object_arrays)
 add_test(invalidJson invalidJson)
 add_test(json_gen json_gen)
 
@@ -101,7 +105,7 @@ install (EXPORT FixedJSONTargets
 #
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file("FixedJSONConfigVersion.cmake"
-    VERSION       0.1
+    VERSION       0.2
     COMPATIBILITY SameMajorVersion
 )
 install (
