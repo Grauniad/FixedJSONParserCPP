@@ -2314,7 +2314,141 @@ TEST(JSONParsing,TrippleEmbededObject) {
     ASSERT_EQ(json3.Get<DoubleField1>() , 5.5);
 
 }
-TEST(JSONParsing,TrippleEmbededObject_Repeating) {
+
+TEST(JSONParsing,Object_Repeating) {
+    std::string rawJson = R"JSON({
+        "ObjectA": {
+            "DoubleField1": 5.5,
+            "DoubleField2": 5,
+            "DoubleField3": -5
+        },
+        "ObjectB": {
+            "DoubleField1": 6.5,
+            "DoubleField2": 6,
+            "DoubleField3": -6
+        }
+    }
+    )JSON";
+
+    typedef SimpleParsedJSON<
+        DoubleField1,
+        DoubleField2,
+        DoubleField3
+        > JSON;
+    NewEmbededObject(ObjectA,JSON);
+    NewEmbededObject(ObjectB,JSON);
+
+    SimpleParsedJSON<ObjectA, ObjectB> parent, parent2, parent3;
+
+    std::string error;
+    bool ok = parent.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& jsonA = parent.Get<ObjectA>();
+    JSON& jsonB = parent.Get<ObjectB>();
+
+    ASSERT_EQ(jsonA.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(jsonB.Get<DoubleField1>() , 6.5);
+
+
+    string newRawJson = parent.GetJSONString(true);
+
+    ok = parent2.Parse(newRawJson.c_str(), error);
+
+    JSON& json2A = parent2.Get<ObjectA>();
+    JSON& json2B = parent2.Get<ObjectB>();
+
+    ASSERT_TRUE(ok);
+
+    ASSERT_EQ(json2A.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(json2B.Get<DoubleField1>() , 6.5);
+
+
+    string newRawJson2 = parent.GetPrettyJSONString();
+
+    ok = parent3.Parse(newRawJson2.c_str(), error);
+
+    JSON& json3A = parent3.Get<ObjectA>();
+    JSON& json3B = parent3.Get<ObjectB>();
+
+    ASSERT_TRUE(ok);
+
+    ASSERT_EQ(json3A.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(json3B.Get<DoubleField1>() , 6.5);
+
+}
+
+TEST(JSONParsing,EmbededObject_Repeating) {
+    std::string rawJson = R"JSON({
+        "Object2": {
+            "ObjectA": {
+                "DoubleField1": 5.5,
+                "DoubleField2": 5,
+                "DoubleField3": -5
+            },
+            "ObjectB": {
+                "DoubleField1": 6.5,
+                "DoubleField2": 6,
+                "DoubleField3": -6
+            }
+        }
+    }
+    )JSON";
+
+    typedef SimpleParsedJSON<
+        DoubleField1,
+        DoubleField2,
+        DoubleField3
+        > JSON;
+    NewEmbededObject(ObjectA,JSON);
+    NewEmbededObject(ObjectB,JSON);
+
+    typedef SimpleParsedJSON<ObjectA, ObjectB> JSON2;
+    NewEmbededObject(Object2,JSON2);
+
+    SimpleParsedJSON<Object2> parent, parent2, parent3;
+
+    std::string error;
+    bool ok = parent.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& jsonA = parent.Get<Object2>().Get<ObjectA>();
+    JSON& jsonB = parent.Get<Object2>().Get<ObjectB>();
+
+    ASSERT_EQ(jsonA.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(jsonB.Get<DoubleField1>() , 6.5);
+
+
+    string newRawJson = parent.GetJSONString(true);
+
+    ok = parent2.Parse(newRawJson.c_str(), error);
+
+    JSON& json2A = parent2.Get<Object2>().Get<ObjectA>();
+    JSON& json2B = parent2.Get<Object2>().Get<ObjectB>();
+
+    ASSERT_TRUE(ok);
+
+    ASSERT_EQ(json2A.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(json2B.Get<DoubleField1>() , 6.5);
+
+
+    string newRawJson2 = parent.GetPrettyJSONString();
+
+    ok = parent3.Parse(newRawJson2.c_str(), error);
+
+    JSON& json3A = parent3.Get<Object2>().Get<ObjectA>();
+    JSON& json3B = parent3.Get<Object2>().Get<ObjectB>();
+
+    ASSERT_TRUE(ok);
+
+    ASSERT_EQ(json3A.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(json3B.Get<DoubleField1>() , 6.5);
+
+}
+
+TEST(JSONParsing, TrippleEmbededObject_Repeating) {
     std::string rawJson = R"JSON({
         "Object3": {
             "Object2": {
@@ -2385,7 +2519,6 @@ TEST(JSONParsing,TrippleEmbededObject_Repeating) {
 
     ASSERT_EQ(json3A.Get<DoubleField1>() , 5.5);
     ASSERT_EQ(json3B.Get<DoubleField1>() , 6.5);
-
 }
 
 TEST(JSONParsing,EmbededObjectInArray) {
@@ -2438,6 +2571,78 @@ TEST(JSONParsing,EmbededObjectInArray) {
 
     auto& outer1 = *outerObjects[0];
     auto& outer2 = *outerObjects[1];
+
+    auto& objects1 = outer1.Get<Objects>();
+    auto& objects2 = outer2.Get<Objects>();
+
+    ASSERT_EQ(objects1.size() , 2 );
+
+    auto& object1 = *objects1[0];
+    auto& object2 = *objects1[1];
+
+    ASSERT_EQ(object1.Get<IntField1>() , 1 );
+
+    ASSERT_EQ(object2.Get<IntField1>() , 2 );
+
+    ASSERT_EQ(objects2.size() , 3 );
+
+    auto& object3 = *objects2[0];
+    auto& object4 = *objects2[1];
+    auto& object5 = *objects2[2];
+
+    ASSERT_EQ(object3.Get<IntField1>() , 3 );
+
+    ASSERT_EQ(object4.Get<IntField1>() , 4 );
+
+    ASSERT_EQ(object5.Get<IntField1>() , 5 );
+
+}
+
+TEST(JSONParsing,EmbededObjectInParallelArray) {
+    std::string rawJson = R"JSON({
+        "OuterObjects1": {
+            "Objects": [
+                {
+                    "IntField1": 1
+                },
+                {
+                    "IntField1": 2
+                }
+            ]
+        },
+        "OuterObjects2": {
+            "Objects": [
+                {
+                    "IntField1": 3
+                },
+                {
+                    "IntField1": 4
+                },
+                {
+                    "IntField1": 5
+                }
+            ]
+        }
+    }
+    )JSON";
+    typedef SimpleParsedJSON<IntField1> Object;
+    NewObjectArray(Objects,Object);
+
+    using Outer = SimpleParsedJSON<Objects>;
+    NewEmbededObject(OuterObjects1, Outer);
+    NewEmbededObject(OuterObjects2, Outer);
+
+    typedef SimpleParsedJSON<OuterObjects1, OuterObjects2> JSON;
+
+    JSON json;
+
+    std::string error;
+    bool ok = json.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    auto& outer1 = json.Get<OuterObjects1>();
+    auto& outer2 = json.Get<OuterObjects2>();
 
     auto& objects1 = outer1.Get<Objects>();
     auto& objects2 = outer2.Get<Objects>();
@@ -2937,7 +3142,7 @@ TEST(JSONParsing,SuppliedEmbededObjectInArray) {
     )RAW";
 
     string expOutput =
-R"RAW({
+            R"RAW({
     "OuterObjects": [
         {
             "Objects": [
@@ -2961,21 +3166,19 @@ R"RAW({
     ]
 })RAW";
     string allNull =
-R"RAW({
+            R"RAW({
     "OuterObjects": null
 })RAW";
     OutputJSON json;
     string error;
-    ASSERT_TRUE(json.Parse(input.c_str(), error) );
+    ASSERT_TRUE(json.Parse(input.c_str(), error));
 
     string output = json.GetPrettyJSONString(true);
 
-    ASSERT_EQ(output , expOutput);
+    ASSERT_EQ(output, expOutput);
 
     json.Clear();
     output = json.GetPrettyJSONString(true);
 
     ASSERT_EQ(output , allNull);
-
 }
-

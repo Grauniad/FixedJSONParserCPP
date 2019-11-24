@@ -439,8 +439,6 @@ struct EmbededObjectField: public FieldBase {
 
     size_t depth;
 
-    virtual bool EndObjectCompletesField() const override { return true; }
-
     /*******************************
      *         Utilities
      *******************************/ 
@@ -501,10 +499,11 @@ struct EmbededObjectField: public FieldBase {
     }
 
     bool EndObject(rapidjson::SizeType memberCount) {
-        if (depth > 0) {
-            value.EndObject(memberCount);
+        if (depth > 1) {
+            value.GetCurrentField()->EndObject(memberCount);
             --depth;
-        } else if (depth == 0) {
+        } else if (depth > 0) {
+            value.EndObject(memberCount);
             --depth;
         } else {
             throw spJSON::ParseError();
@@ -685,13 +684,9 @@ struct ObjectArray: public FieldBase {
             value.InsertAtBack();
             value.back()->StartObject();
             activeObject = this;
-        } else if (depth == 1) {
-            // TODO: Although it seems counter-intuative, we haven't increased the depth
-            //       The reason is that by returning the child's active object all
-            //       calls (including the EndObject) will by-pass the array
+        } else  {
+            ++depth;
             activeObject = value.back()->GetCurrentField()->StartObject();
-        } else {
-            throw spJSON::ParseError{};
         }
         return activeObject;
     }
@@ -709,8 +704,11 @@ struct ObjectArray: public FieldBase {
     }
 
     bool EndObject(rapidjson::SizeType memberCount) {
-        if (depth > 0) {
+        if (depth == 1) {
             value.back()->EndObject(memberCount);
+            --depth;
+        } else if (depth > 1) {
+            value.back()->GetCurrentField()->EndObject(memberCount);
             --depth;
         } else {
             throw spJSON::ParseError();
@@ -890,9 +888,13 @@ bool SimpleParsedJSON<Fields...>::StartObject() {
     if ( depth == 0) {
         ++depth;
     } else {
-        ++depth;
-        objectStack.push_back(GetCurrentField()->StartObject());
+        FieldBase* newObject = GetCurrentField()->StartObject();
+        if (objectStack.empty() || newObject != objectStack.back()) {
+            ++depth;
+            objectStack.push_back(newObject);
+        }
     }
+
     return true;
 }
 
@@ -906,19 +908,17 @@ bool SimpleParsedJSON<Fields...>::EndObject(rapidjson::SizeType memberCount) {
         --depth;
     } else if (depth > 1 && objectStack.empty() == false) {
         size_t objIdx = objectStack.size()-1;
-        if (objectStack[objIdx]->EndObjectCompletesField() && objIdx > 0 ) {
-            objectStack[objIdx-1]->EndObject(memberCount);
-        } else {
-            objectStack[objIdx]->EndObject(memberCount);
+        size_t endIdx = objIdx;
+        if (objIdx > 0 ) {
+            endIdx--;
         }
+        objectStack[endIdx]->EndObject(memberCount);
         objectStack.pop_back();
 
         --depth;
     } else if (depth == 0) {
-        --depth;
-    } else {
-        throw spJSON::ParseError();
     }
+
     return true;
 }
 
