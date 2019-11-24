@@ -439,6 +439,8 @@ struct EmbededObjectField: public FieldBase {
 
     size_t depth;
 
+    virtual bool EndObjectCompletesField() const override { return true; }
+
     /*******************************
      *         Utilities
      *******************************/ 
@@ -501,6 +503,8 @@ struct EmbededObjectField: public FieldBase {
     bool EndObject(rapidjson::SizeType memberCount) {
         if (depth > 0) {
             value.EndObject(memberCount);
+            --depth;
+        } else if (depth == 0) {
             --depth;
         } else {
             throw spJSON::ParseError();
@@ -901,8 +905,16 @@ bool SimpleParsedJSON<Fields...>::EndObject(rapidjson::SizeType memberCount) {
     if ( depth == 1) {
         --depth;
     } else if (depth > 1 && objectStack.empty() == false) {
-        objectStack.back()->EndObject(memberCount);
+        size_t objIdx = objectStack.size()-1;
+        if (objectStack[objIdx]->EndObjectCompletesField() && objIdx > 0 ) {
+            objectStack[objIdx-1]->EndObject(memberCount);
+        } else {
+            objectStack[objIdx]->EndObject(memberCount);
+        }
         objectStack.pop_back();
+
+        --depth;
+    } else if (depth == 0) {
         --depth;
     } else {
         throw spJSON::ParseError();

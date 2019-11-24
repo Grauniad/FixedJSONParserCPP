@@ -196,6 +196,8 @@ struct FieldBase {
      */
     virtual const char* Name() = 0;
 
+    virtual bool EndObjectCompletesField() const { return false; }
+
     /*****************************************************************************
      *                      Default Type Error Interface
      *                 (see SimpleParsedJSON class for details)

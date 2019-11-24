@@ -2314,6 +2314,79 @@ TEST(JSONParsing,TrippleEmbededObject) {
     ASSERT_EQ(json3.Get<DoubleField1>() , 5.5);
 
 }
+TEST(JSONParsing,TrippleEmbededObject_Repeating) {
+    std::string rawJson = R"JSON({
+        "Object3": {
+            "Object2": {
+                "ObjectA": {
+                    "DoubleField1": 5.5,
+                    "DoubleField2": 5,
+                    "DoubleField3": -5
+                },
+                "ObjectB": {
+                    "DoubleField1": 6.5,
+                    "DoubleField2": 6,
+                    "DoubleField3": -6
+                }
+            }
+        }
+    }
+    )JSON";
+
+    typedef SimpleParsedJSON<
+        DoubleField1,
+        DoubleField2,
+        DoubleField3
+        > JSON;
+    NewEmbededObject(ObjectA,JSON);
+    NewEmbededObject(ObjectB,JSON);
+
+    typedef SimpleParsedJSON<ObjectA, ObjectB> JSON2;
+    NewEmbededObject(Object2,JSON2);
+
+    typedef SimpleParsedJSON<Object2> JSON3;
+    NewEmbededObject(Object3,JSON3);
+
+    SimpleParsedJSON<Object3> parent, parent2, parent3;
+
+    std::string error;
+    bool ok = parent.Parse(rawJson.c_str(),error);
+
+    ASSERT_TRUE(ok);
+
+    JSON& jsonA = parent.Get<Object3>().Get<Object2>().Get<ObjectA>();
+    JSON& jsonB = parent.Get<Object3>().Get<Object2>().Get<ObjectB>();
+
+    ASSERT_EQ(jsonA.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(jsonB.Get<DoubleField1>() , 6.5);
+
+
+    string newRawJson = parent.GetJSONString(true);
+
+    ok = parent2.Parse(newRawJson.c_str(), error);
+
+    JSON& json2A = parent2.Get<Object3>().Get<Object2>().Get<ObjectA>();
+    JSON& json2B = parent2.Get<Object3>().Get<Object2>().Get<ObjectB>();
+
+    ASSERT_TRUE(ok);
+
+    ASSERT_EQ(json2A.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(json2B.Get<DoubleField1>() , 6.5);
+
+
+    string newRawJson2 = parent.GetPrettyJSONString();
+
+    ok = parent3.Parse(newRawJson2.c_str(), error);
+
+    JSON& json3A = parent3.Get<Object3>().Get<Object2>().Get<ObjectA>();
+    JSON& json3B = parent3.Get<Object3>().Get<Object2>().Get<ObjectB>();
+
+    ASSERT_TRUE(ok);
+
+    ASSERT_EQ(json3A.Get<DoubleField1>() , 5.5);
+    ASSERT_EQ(json3B.Get<DoubleField1>() , 6.5);
+
+}
 
 TEST(JSONParsing,EmbededObjectInArray) {
     std::string rawJson = R"JSON({
