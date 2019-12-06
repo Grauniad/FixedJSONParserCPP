@@ -239,6 +239,7 @@ struct FieldArrayBase: public FieldBase {
 
     typedef std::vector<TYPE> ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     bool inArray;
 

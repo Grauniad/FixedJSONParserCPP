@@ -153,6 +153,7 @@ bool FieldArrayBase<TYPE>::EndArray(rapidjson::SizeType elementCount)
 struct StringField: public FieldBase {
     typedef std::string ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     virtual void Clear() {
         FieldBase::Clear();
@@ -180,6 +181,7 @@ struct StringArrayField: public FieldArrayBase<std::string> {
 struct IntField: public FieldBase {
     typedef int ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     virtual void Clear() {
         FieldBase::Clear();
@@ -221,6 +223,7 @@ struct IntArrayField: public FieldArrayBase<int> {
 struct I64Field: public FieldBase {
     typedef int64_t ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     virtual void Clear() {
         FieldBase::Clear();
@@ -283,6 +286,7 @@ struct I64ArrayField: public FieldArrayBase<int64_t> {
 struct UI64Field: public FieldBase {
     typedef uint64_t ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     virtual void Clear() {
         FieldBase::Clear();
@@ -315,6 +319,7 @@ struct UI64ArrayField: public FieldArrayBase<uint64_t> {
 struct UIntField: public FieldBase {
     typedef unsigned ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     virtual void Clear() {
         FieldBase::Clear();
@@ -338,6 +343,7 @@ struct UIntArrayField: public FieldArrayBase<unsigned> {
 struct DoubleField: public FieldBase {
     typedef float ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     virtual void Clear() {
         FieldBase::Clear();
@@ -400,6 +406,7 @@ struct DoubleArrayField: public FieldArrayBase<double> {
 struct BoolField: public FieldBase {
     typedef bool ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     virtual void Clear() {
         FieldBase::Clear();
@@ -436,6 +443,7 @@ struct EmbededObjectField: public FieldBase {
      *******************************/ 
     typedef JSON ValueType;
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     size_t depth;
 
@@ -632,6 +640,7 @@ struct ObjectArray: public FieldBase {
         Vector cache;
     };
     ValueType value;
+    constexpr ValueType& Value() { return value; }
 
     int depth;
 
@@ -866,7 +875,7 @@ void SimpleParsedJSON<Fields...>::Clear() {
 template <class...Fields>
 template <class FIELD>
 typename FIELD::ValueType& SimpleParsedJSON<Fields...>::Get() {
-    return std::get<FIELD>(fields).value;
+    return std::get<FIELD>(fields).Value();
 }
 
 template <class...Fields>
