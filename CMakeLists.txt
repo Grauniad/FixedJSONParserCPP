@@ -98,6 +98,10 @@ install(TARGETS FixedJSON EXPORT FixedJSONTargets
     PUBLIC_HEADER DESTINATION include
 )
 
+install(TARGETS jsonGen EXPORT FixedJSONTargets
+    RUNTIME  DESTINATION bin
+)
+
 install (EXPORT FixedJSONTargets
     FILE         FixedJSONTargets.cmake
     NAMESPACE    FixedJSON::
