@@ -66,8 +66,30 @@ TEST_F(FmtTest, TextPrefixJSON) {
 )PRETTY";
     AssertOutput(pretty);
 }
-TEST_F(FmtTest, BracesBrancesEverywhere) {
+TEST_F(FmtTest, BracesBracesEverywhere) {
     const std::string braces = "{}{}{{{{}{}{}{}{}}}}}{}{}{}{}{}{{{{}}}{}{}{}{}{}{}}}}{}{}{}{}{}";
     in << braces;
     AssertOutput(braces);
+}
+
+TEST_F(FmtTest, TrailingBrace) {
+    const std::string braces = "End With Brace {";
+    in << braces;
+    AssertOutput(braces);
+}
+
+TEST_F(FmtTest, TrailingBraceSuffixc) {
+    const std::string braces = "End With Brace{";
+    in << braces;
+    AssertOutput(braces);
+}
+
+TEST_F(FmtTest, JSONInASeaOfBraces) {
+    const std::string braces = R"MSG({}{}{{{{}{}{}{}{}}}}}{}{}{}{}{}{{{{"msg":"Hello World!"}}}{}{}{}{}{}{}}}}{}{}{}{}{})MSG";
+    const std::string pretty = R"MSG({}{}{{{{}{}{}{}{}}}}}{}{}{}{}{}{{{{
+    "msg": "Hello World!"
+}
+}}{}{}{}{}{}{}}}}{}{}{}{}{})MSG";
+    in << braces;
+    AssertOutput(pretty);
 }

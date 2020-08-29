@@ -34,6 +34,7 @@ namespace {
         }
 
         bool EndObject(rapidjson::SizeType memberCount) {
+            count = memberCount;
             return writer.EndObject(memberCount);
         }
 
@@ -65,6 +66,7 @@ namespace {
             return writer.RawNumber(str, len, copy);
         }
 
+        size_t count = 0;
         rapidjson::StringBuffer buf;
         rapidjson::PrettyWriter<rapidjson::StringBuffer> writer;
     };
@@ -81,12 +83,20 @@ namespace {
 
         //! Read the current character from stream without moving the read cursor.
         Ch Peek() const {
-            return is.peek();
+            if (is.eof()) {
+                return '\0';
+            } else {
+                return is.peek();
+            }
         }
 
         //! Read the current character from stream and moving the read cursor to next character.
         Ch Take() {
-            return is.get();
+            char c = '\0';
+            if (!(is >> c)) {
+                c = '\0';
+            }
+            return c;
         }
 
         //! Get the current read cursor.
@@ -145,7 +155,7 @@ namespace {
         Parser p;
         rapidjson::Reader reader;
         rapidjson::ParseResult result = reader.Parse<flags>(in,p);
-        if (result.IsError()) {
+        if (result.IsError() || p.count == 0) {
             in.Revert();
         } else {
             out << p.buf.GetString() << std::endl;
@@ -162,8 +172,6 @@ void FmtJSON::Fmt(std::istream& in, std::ostream& out) {
     size_t spos = in.tellg();
     in >> std::noskipws;
     while (in >> buf) {
-        bool gotJSON = false;
-
         const size_t pos = buf.find('{');
         if ( pos != std::string::npos) {
             out << full;
@@ -172,16 +180,12 @@ void FmtJSON::Fmt(std::istream& in, std::ostream& out) {
                 out << buf.substr(0, pos);
             }
 
-            const size_t bufEndPos = in.tellg();
             in.seekg(spos + pos);
-            if (TryMakeJSON(in, out)) {
-                gotJSON = true;
-            } else {
-                in.seekg(bufEndPos);
+            if (!TryMakeJSON(in, out)) {
+                in.seekg(spos + pos +1);
+                full += "{";
             }
-        }
-
-        if (!gotJSON) {
+        } else {
             full += buf;
         }
 
@@ -190,6 +194,7 @@ void FmtJSON::Fmt(std::istream& in, std::ostream& out) {
         }
 
         spos = in.tellg();
+        buf = "";
     }
     out << full;
 }
