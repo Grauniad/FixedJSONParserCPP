@@ -12,6 +12,7 @@ find_package(OSDevTools 0.1 REQUIRED)
 find_package(UtilTime 0.1 REQUIRED)
 find_package(DevToolsLog 0.1 REQUIRED)
 find_package(RapidJSON 1.1.0 REQUIRED)
+find_package(ThreadComms 0.1 REQUIRED)
 
 #
 # Build configuration for SimpleJSON itself...
@@ -21,7 +22,9 @@ find_package(RapidJSON 1.1.0 REQUIRED)
 add_library(FixedJSON STATIC
         include/SimpleJSON.h
         include/SimpleJSON.hpp
-        src/SimpleJSON.cpp)
+        include/SimpleJSONFmt.h
+        src/SimpleJSON.cpp
+        src/SimpleJSONFmt.cpp)
 
 target_link_libraries(FixedJSON PUBLIC
     DevToolsLog::Log
@@ -56,6 +59,12 @@ add_executable(glossary_dom benchmarks/glossary_dom.cpp)
 target_link_libraries(glossary_dom FixedJSON UtilTime::Time)
 
 #
+# Utilities
+#
+add_executable(jsonsfmt src/jsonsfmt.cpp)
+target_link_libraries(jsonsfmt FixedJSON UtilTime::Time)
+
+#
 # Test Configuration
 #
 find_package(GTest REQUIRED)
@@ -65,6 +74,10 @@ target_link_libraries(invalidJson FixedJSON GTest::GTest)
 
 add_executable(json test/json.cpp)
 target_link_libraries(json FixedJSON GTest::GTest)
+
+add_executable(jsonFmtTest test/jsonFmt.cpp)
+target_link_libraries(jsonFmtTest FixedJSON ThreadComms::ThreadComms GTest::GTest)
+add_definitions(-D_GLIBCXX_DEBUG)
 
 add_executable(jsonParallelFields test/json_parallel_fields.cpp)
 target_link_libraries(jsonParallelFields FixedJSON GTest::GTest)
@@ -99,6 +112,10 @@ install(TARGETS FixedJSON EXPORT FixedJSONTargets
 )
 
 install(TARGETS jsonGen EXPORT FixedJSONTargets
+    RUNTIME  DESTINATION bin
+)
+
+install(TARGETS jsonsfmt EXPORT FixedJSONTargets
     RUNTIME  DESTINATION bin
 )
 

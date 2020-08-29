@@ -93,12 +93,23 @@ void SimpleJSONBuilderBase<WRTIER>::StartArray(const std::string& name) {
 }
 
 template <class WRTIER>
+void SimpleJSONBuilderBase<WRTIER>::StartAnonymousArray() {
+    writer.StartArray();
+}
+
+template <class WRTIER>
 void SimpleJSONBuilderBase<WRTIER>::EndArray() {
     writer.EndArray();
 }
 
 template <class WRTIER>
 void SimpleJSONBuilderBase<WRTIER>::StartAnonymousObject() {
+    writer.StartObject();
+}
+
+template <class WRTIER>
+void SimpleJSONBuilderBase<WRTIER>::StartObject(const std::string& name) {
+    writer.String(name.c_str());
     writer.StartObject();
 }
 
