@@ -66,6 +66,17 @@ TEST_F(FmtTest, TextPrefixJSON) {
 )PRETTY";
     AssertOutput(pretty);
 }
+
+TEST_F(FmtTest, LeadingSpacesTextPrefixJSON) {
+    in << R"JSON(     This is JSON:{"msg":"Hello World!"})JSON";
+    const std::string pretty =
+            R"PRETTY(     This is JSON:{
+    "msg": "Hello World!"
+}
+)PRETTY";
+    AssertOutput(pretty);
+}
+
 TEST_F(FmtTest, BracesBracesEverywhere) {
     const std::string braces = "{}{}{{{{}{}{}{}{}}}}}{}{}{}{}{}{{{{}}}{}{}{}{}{}{}}}}{}{}{}{}{}";
     in << braces;

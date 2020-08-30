@@ -83,20 +83,12 @@ namespace {
 
         //! Read the current character from stream without moving the read cursor.
         Ch Peek() const {
-            if (is.eof()) {
-                return '\0';
-            } else {
-                return is.peek();
-            }
+            return is.peek();
         }
 
         //! Read the current character from stream and moving the read cursor to next character.
         Ch Take() {
-            char c = '\0';
-            if (!(is >> c)) {
-                c = '\0';
-            }
-            return c;
+            return is.get();
         }
 
         //! Get the current read cursor.
@@ -164,38 +156,45 @@ namespace {
 
         return success;
     }
+
+    bool ReadSome(std::istream& in, std::string& buf) {
+        buf = "";
+        bool gotSome = false;
+
+        while (std::isspace(in.peek())) {
+            buf += (char) in.get();
+            gotSome = true;
+        }
+
+        std::string tok;
+        if (in >> tok)  {
+            gotSome = true;
+            buf += tok;
+        }
+
+        return gotSome;
+
+    }
 }
 
 void FmtJSON::Fmt(std::istream& in, std::ostream& out) {
-    std::string full;
     std::string buf;
-    size_t spos = in.tellg();
+
     in >> std::noskipws;
-    while (in >> buf) {
+
+    for (size_t spos = in.tellg(); ReadSome(in, buf); spos = in.tellg()) {
         const size_t pos = buf.find('{');
         if ( pos != std::string::npos) {
-            out << full;
-            full = "";
-            if (pos > 0) {
-                out << buf.substr(0, pos);
-            }
+            out << buf.substr(0, pos);
 
             in.seekg(spos + pos);
             if (!TryMakeJSON(in, out)) {
-                in.seekg(spos + pos +1);
-                full += "{";
+                in.seekg(1, std::ios_base::cur);
+                out << "{";
             }
         } else {
-            full += buf;
+            out << buf;
         }
-
-        while (std::isspace(in.peek())) {
-            full += in.get();
-        }
-
-        spos = in.tellg();
-        buf = "";
     }
-    out << full;
 }
 
