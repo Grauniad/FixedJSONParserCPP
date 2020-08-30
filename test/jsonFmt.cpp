@@ -84,7 +84,7 @@ TEST_F(FmtTest, BracesBracesEverywhere) {
 }
 
 TEST_F(FmtTest, TrailingBrace) {
-    const std::string braces = "End With Brace {";
+    const std::string braces = "    End With Brace {";
     in << braces;
     AssertOutput(braces);
 }
@@ -103,4 +103,43 @@ TEST_F(FmtTest, JSONInASeaOfBraces) {
 }}{}{}{}{}{}{}}}}{}{}{}{}{})MSG";
     in << braces;
     AssertOutput(pretty);
+}
+
+TEST_F(FmtTest, NewLines) {
+    const std::string braces = R"MSG({
+  NOT JSON
+} {
+
+} <-- That wasn't
+
+JSON
+
+Either)MSG";
+    in << braces;
+    AssertOutput(braces);
+}
+
+TEST_F(FmtTest, FeedsAndTabs) {
+    const std::string braces = R"MSG({
+  NOT JSON
+} {
+   {\a{\b{\f{\n{\r{\t{\v
+} <-- That wasn't
+
+JSON
+
+Either)MSG";
+    in << braces;
+    AssertOutput(braces);
+}
+
+TEST_F(FmtTest, DispatchMsg) {
+    const std::string json = R"MSG({"status":"DISPATCHED"})MSG";
+    const std::string fmt =
+R"MSG({
+    "status": "DISPATCHED"
+}
+)MSG";
+    in << json;
+    AssertOutput(fmt);
 }

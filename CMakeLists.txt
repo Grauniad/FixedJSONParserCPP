@@ -59,6 +59,12 @@ add_executable(glossary_dom benchmarks/glossary_dom.cpp)
 target_link_libraries(glossary_dom FixedJSON UtilTime::Time)
 
 #
+# Utilities
+#
+add_executable(jsonsfmt src/jsonsfmt.cpp)
+target_link_libraries(jsonsfmt FixedJSON UtilTime::Time)
+
+#
 # Test Configuration
 #
 find_package(GTest REQUIRED)

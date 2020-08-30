@@ -73,31 +73,39 @@ namespace {
 
     class IStreamWrap {
     public:
-        std::istream& is;
-        std::istream::pos_type startPos;
-        IStreamWrap(std::istream& is): is(is) {
-            startPos = is.tellg();
-        }
-
         using Ch = char;
+
+        IStreamWrap(std::istream& is, const Ch& firstChar): is(is) {
+            is >> std::noskipws;
+            startPos = is.tellg();
+            state = is.rdstate();
+
+            pulled = true;
+            pulledChar = firstChar;
+        }
 
         //! Read the current character from stream without moving the read cursor.
         Ch Peek() const {
-            return is.peek();
+            if (pulled) {
+                return pulledChar;
+            } else {
+                return is.peek();
+            }
         }
 
         //! Read the current character from stream and moving the read cursor to next character.
         Ch Take() {
-            return is.get();
+            if (!pulled) {
+                Pull();
+            }
+            pulled = false;
+            return pulledChar;
         }
 
-        //! Get the current read cursor.
-        //! \return Number of characters read from start.
-        size_t Tell() {
-            return is.tellg();
-        }
+        size_t Tell() { return is.tellg(); }
 
         void Revert() {
+            is.clear(state);
             is.seekg(startPos);
         }
 
@@ -107,6 +115,20 @@ namespace {
         void Put(Ch c) { throw WriteToReadOnlyStream{}; }
         void Flush() { throw WriteToReadOnlyStream{}; }
         size_t PutEnd(Ch* begin) {throw WriteToReadOnlyStream{}; }
+    private:
+        std::istream& is;
+        std::istream::pos_type startPos;
+        std::ios_base::iostate state;
+
+        bool pulled = false;
+        Ch pulledChar = '\0';
+
+        void Pull() {
+            pulledChar = '\0';
+            is >> pulledChar;
+            pulled = true;
+        }
+
     };
 
     std::string ErrorCode(const rapidjson::ParseErrorCode& code) {
@@ -157,43 +179,28 @@ namespace {
         return success;
     }
 
-    bool ReadSome(std::istream& in, std::string& buf) {
-        buf = "";
-        bool gotSome = false;
+    bool ReadSome(std::istream& in, std::ostream& out) {
+        std::string buf;
+        std::getline(in, buf, '{');
 
-        while (std::isspace(in.peek())) {
-            buf += (char) in.get();
-            gotSome = true;
-        }
+        const bool done = (buf.empty() && !in.good());
 
-        std::string tok;
-        if (in >> tok)  {
-            gotSome = true;
-            buf += tok;
-        }
+        out << std::move(buf);
 
-        return gotSome;
+        return !done;
 
     }
 }
 
 void FmtJSON::Fmt(std::istream& in, std::ostream& out) {
-    std::string buf;
-
-    in >> std::noskipws;
-
-    for (size_t spos = in.tellg(); ReadSome(in, buf); spos = in.tellg()) {
-        const size_t pos = buf.find('{');
-        if ( pos != std::string::npos) {
-            out << buf.substr(0, pos);
-
-            in.seekg(spos + pos);
-            if (!TryMakeJSON(in, out)) {
-                in.seekg(1, std::ios_base::cur);
-                out << "{";
-            }
+    while (ReadSome(in, out)) {
+        if (!in.good()) {
+            // Nothing left
+        } else if (TryMakeJSON(IStreamWrap{in, '{'}, out)) {
+            // was start of some JSON - it has been written out
         } else {
-            out << buf;
+            // wasn't start of any JSON, write out the skipped chat
+            out << "{";
         }
     }
 }
