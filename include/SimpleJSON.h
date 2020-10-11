@@ -90,8 +90,10 @@ public:
      * It is the callers responsibility to call the corresponding End Array...
      */
     void StartArray(const std::string& name);
+    void StartAnonymousArray();
     void EndArray();
 
+    void StartObject(const std::string& name);
     void StartAnonymousObject();
     void EndObject();
 
@@ -117,6 +119,16 @@ private:
     void Add(const double& value);
 
     void Add(const bool& value);
+
+    template <typename VALUE_TYPE>
+    void Add(const std::vector<VALUE_TYPE>& array)
+    {
+        writer.StartArray();
+        for (const VALUE_TYPE& item: array) {
+            Add(item);
+        }
+        writer.EndArray();
+    }
 
     /*****************************************************
      * Data
