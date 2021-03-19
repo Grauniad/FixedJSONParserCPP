@@ -9,6 +9,7 @@
 #define SIMPLEJSON_HPP_
 
 #include <limits>
+#include <deque>
 #include <type_traits>
 #include <rapidjson/error/en.h>
 
@@ -93,12 +94,23 @@ void SimpleJSONBuilderBase<WRTIER>::StartArray(const std::string& name) {
 }
 
 template <class WRTIER>
+void SimpleJSONBuilderBase<WRTIER>::StartAnonymousArray() {
+    writer.StartArray();
+}
+
+template <class WRTIER>
 void SimpleJSONBuilderBase<WRTIER>::EndArray() {
     writer.EndArray();
 }
 
 template <class WRTIER>
 void SimpleJSONBuilderBase<WRTIER>::StartAnonymousObject() {
+    writer.StartObject();
+}
+
+template <class WRTIER>
+void SimpleJSONBuilderBase<WRTIER>::StartObject(const std::string& name) {
+    writer.String(name.c_str());
     writer.StartObject();
 }
 
@@ -149,6 +161,72 @@ bool FieldArrayBase<TYPE>::EndArray(rapidjson::SizeType elementCount)
 /*****************************************************************************
  *                          Field Type Definitions
  *****************************************************************************/
+
+struct SkipField: public FieldBase {
+    std::deque<SkipField> stack;
+    typedef std::string ValueType;
+    ValueType value;
+    constexpr ValueType& Value() { return value; }
+
+    const char* Name() override { return "dummy skip field"; }
+
+    virtual void Clear() override {
+        FieldBase::Clear();
+        value.clear();
+    }
+
+    bool String(const char* str, rapidjson::SizeType length, bool copy) override {
+        return true;
+    }
+
+    bool Int(int i) override {
+        return true;
+    }
+
+    bool Int64(int64_t i) override {
+        return true;
+    }
+
+    bool Uint(unsigned u) override {
+        return true;
+    }
+
+    bool Uint64(uint64_t u) override {
+        return true;
+    }
+
+    bool Double(double d) override {
+        return true;
+    }
+
+    bool Bool(bool b) override{
+        return true;
+    }
+
+    bool StartArray() override {
+        return true;
+    }
+
+    bool EndArray(rapidjson::SizeType elementCount) override{
+        return true;
+    }
+
+    FieldBase* StartObject() override {
+        stack.push_back({});
+        return &stack.back();
+    }
+
+    bool EndObject(rapidjson::SizeType memberCount) override {
+        if (!stack.empty()) {
+            stack.pop_back();
+        }
+        return true;
+    }
+
+    bool Key(const char* str, rapidjson::SizeType length, bool copy) override {
+        return true;
+    }
+};
 
 struct StringField: public FieldBase {
     typedef std::string ValueType;
@@ -949,8 +1027,12 @@ bool SimpleParsedJSON<Fields...>::Key(
     } else {
         currentField = Get(str, length);
 
-        if (!currentField) {
+        if (!currentField && !skip_unknown) {
             throw spJSON::UnknownFieldError {str} ;
+        } else if (!currentField) {
+            skip_field = std::make_unique<SkipField>();
+            skip_info = std::make_unique<FieldInfo>(skip_field.get());
+            currentField = skip_info.get();
         }
 
         currentField->field->supplied = true;
