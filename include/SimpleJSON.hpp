@@ -208,6 +208,18 @@ struct SkipField: public FieldBase {
     bool EndArray(rapidjson::SizeType elementCount) override{
         return true;
     }
+
+    FieldBase* StartObject() override {
+        return this;
+    }
+
+    bool EndObject(rapidjson::SizeType memberCount) override {
+        return true;
+    }
+
+    bool Key(const char* str, rapidjson::SizeType length, bool copy) override {
+        return true;
+    }
 };
 
 struct StringField: public FieldBase {

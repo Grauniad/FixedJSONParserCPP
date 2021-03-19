@@ -63,3 +63,51 @@ TEST(FieldInBase, ExtraParallelArrays ) {
     ASSERT_TRUE(json.Parse(rawJson.c_str(), error)) << error;
     ASSERT_EQ(json.Get<target>(), "Hello World!");
 }
+
+TEST(FieldInBase, ExtraParallelObject ) {
+    BaseParser  json;
+    std::string rawJson = R"JSON(
+        {
+           "dummy_object": {
+               "dummy": "Don't want this!",
+               "dummy_int": 1,
+               "dummy_neg_int": -1,
+               "dummy_large_int": 999999999999,
+               "dummy_large_neg_int": -999999999999,
+               "dummy_double": 123.345,
+               "dummy_null": null,
+               "dummy_bool": true,
+               "dummy": [],
+               "dummy_strings": ["Hello", "World"],
+               "dummy_ints": [1,2,3],
+               "dummy_doubles": [1.3,2.0],
+               "dummy_hetro": ["hello", 2, "worlds", 2.0],
+               "target": "Inner Hello World!"
+           },
+
+           "target": "Hello World!"
+
+           "dummy_object_2": {
+               "dummy": "Don't want this!",
+               "dummy_int": 1,
+               "dummy_neg_int": -1,
+               "dummy_large_int": 999999999999,
+               "dummy_large_neg_int": -999999999999,
+               "dummy_double": 123.345,
+               "dummy_null": null,
+               "dummy_bool": true,
+               "dummy": [],
+               "dummy_strings": ["Hello", "World"],
+               "dummy_ints": [1,2,3],
+               "dummy_doubles": [1.3,2.0],
+               "dummy_hetro": ["hello", 2, "worlds", 2.0],
+               "target": "Inner Hello World! (2)"
+           },
+        }
+    )JSON";
+
+    std::string error;
+    ASSERT_TRUE(json.Parse(rawJson.c_str(), error)) << error;
+    ASSERT_EQ(json.Get<target>(), "Hello World!");
+}
+
