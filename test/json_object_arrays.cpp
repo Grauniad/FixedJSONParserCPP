@@ -142,7 +142,7 @@ TEST_F(JsonArrayTest, NonCachedParses) {
     Result result;
     std::string error;
     Time start;
-    for (size_t i =0; i < 10000; ++i) {
+    for (size_t i =0; i < 1000; ++i) {
         ASSERT_TRUE(result.Parse(dataSet1JSON.c_str(), error));
         CheckData(dataSet1, result);
         result.Clear();
@@ -164,7 +164,7 @@ TEST_F(JsonArrayTest, CachedParses) {
     Result result;
     std::string error;
     Time start;
-    for (size_t i =0; i < 10000; ++i) {
+    for (size_t i =0; i < 1000; ++i) {
         ASSERT_TRUE(result.Parse(dataSet1JSON.c_str(), error));
         CheckData(dataSet1, result);
         result.Get<people>().ClearToCache(10);
@@ -188,7 +188,7 @@ TEST_F(JsonArrayTest, Populate) {
     using namespace json;
     Result result;
     Time start;
-    for (size_t i =0; i < 10000; ++i) {
+    for (size_t i =0; i < 1000; ++i) {
         AddData(dataSet1, result);
         CheckData(dataSet1, result);
         result.Clear();
@@ -209,7 +209,7 @@ TEST_F(JsonArrayTest, PopulateWithCache) {
     using namespace json;
     Result result;
     Time start;
-    for (size_t i =0; i < 10000; ++i) {
+    for (size_t i =0; i < 1000; ++i) {
         AddData(dataSet1, result);
         CheckData(dataSet1, result);
         result.Get<people>().ClearToCache(10);

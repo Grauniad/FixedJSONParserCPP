@@ -295,13 +295,17 @@ public:
     /**************************************************************************
      *                      Initialise the Parser
      **************************************************************************/
+     enum class UnknownFieldMode {
+         ERROR,
+         IGNORE
+     };
     /**
      * C'tor
      *
      * Initialise the run-time map which will convert field name into the actual
      * field.
      */
-    SimpleParsedJSON();
+    SimpleParsedJSON(UnknownFieldMode unknownFields = UnknownFieldMode::ERROR);
 
     /**
      * Reset the object, as if it was newly constructed and ready to parse a new
@@ -313,6 +317,7 @@ public:
     void Clear();
 
     /**************************************************************************
+     *
      *                    Run the Parser
      **************************************************************************/
 
@@ -577,6 +582,9 @@ private:
 
     // Tracks if we are currently handling an array...
     bool isArray;
+    bool skip_unknown = false;
+    std::unique_ptr<FieldBase> skip_field;
+    std::unique_ptr<FieldInfo> skip_info;
 };
 
 #include "SimpleJSON.hpp"
