@@ -9,6 +9,7 @@
 #define SIMPLEJSON_HPP_
 
 #include <limits>
+#include <deque>
 #include <type_traits>
 #include <rapidjson/error/en.h>
 
@@ -162,6 +163,7 @@ bool FieldArrayBase<TYPE>::EndArray(rapidjson::SizeType elementCount)
  *****************************************************************************/
 
 struct SkipField: public FieldBase {
+    std::deque<SkipField> stack;
     typedef std::string ValueType;
     ValueType value;
     constexpr ValueType& Value() { return value; }
@@ -210,10 +212,14 @@ struct SkipField: public FieldBase {
     }
 
     FieldBase* StartObject() override {
-        return this;
+        stack.push_back({});
+        return &stack.back();
     }
 
     bool EndObject(rapidjson::SizeType memberCount) override {
+        if (!stack.empty()) {
+            stack.pop_back();
+        }
         return true;
     }
 

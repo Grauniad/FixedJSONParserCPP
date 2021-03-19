@@ -85,7 +85,7 @@ TEST(FieldInBase, ExtraParallelObject ) {
                "target": "Inner Hello World!"
            },
 
-           "target": "Hello World!"
+           "target": "Hello World!",
 
            "dummy_object_2": {
                "dummy": "Don't want this!",
@@ -95,6 +95,22 @@ TEST(FieldInBase, ExtraParallelObject ) {
                "dummy_large_neg_int": -999999999999,
                "dummy_double": 123.345,
                "dummy_null": null,
+               "dumm_object_3": {
+                   "dummy": "Don't want this!",
+                   "dummy_int": 1,
+                   "dummy_neg_int": -1,
+                   "dummy_large_int": 999999999999,
+                   "dummy_large_neg_int": -999999999999,
+                   "dummy_double": 123.345,
+                   "dummy_null": null,
+                   "dummy_bool": true,
+                   "dummy": [],
+                   "dummy_strings": ["Hello", "World"],
+                   "dummy_ints": [1,2,3],
+                   "dummy_doubles": [1.3,2.0],
+                   "dummy_hetro": ["hello", 2, "worlds", 2.0],
+                   "target": "Inner Hello World! (3)"
+               },
                "dummy_bool": true,
                "dummy": [],
                "dummy_strings": ["Hello", "World"],
@@ -102,7 +118,7 @@ TEST(FieldInBase, ExtraParallelObject ) {
                "dummy_doubles": [1.3,2.0],
                "dummy_hetro": ["hello", 2, "worlds", 2.0],
                "target": "Inner Hello World! (2)"
-           },
+           }
         }
     )JSON";
 
