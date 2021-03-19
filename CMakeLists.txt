@@ -88,6 +88,9 @@ target_link_libraries(json_object_arrays FixedJSON GTest::GTest)
 add_executable(json_gen test/json_gen.cpp)
 target_link_libraries(json_gen FixedJSON GTest::GTest)
 
+add_executable(ignore_extra test/ignore_extra.cpp)
+target_link_libraries(ignore_extra FixedJSON GTest::GTest)
+
 #
 # NOTE: Valgrind must be configured *before* testing is imported
 #
@@ -101,6 +104,7 @@ add_test(jsonParallelFields jsonParallelFields)
 add_test(json_object_arrays json_object_arrays)
 add_test(invalidJson invalidJson)
 add_test(json_gen json_gen)
+add_test(ignore_extra ignore_extra)
 
 #
 # Installation instructions

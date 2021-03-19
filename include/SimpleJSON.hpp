@@ -161,6 +161,55 @@ bool FieldArrayBase<TYPE>::EndArray(rapidjson::SizeType elementCount)
  *                          Field Type Definitions
  *****************************************************************************/
 
+struct SkipField: public FieldBase {
+    typedef std::string ValueType;
+    ValueType value;
+    constexpr ValueType& Value() { return value; }
+
+    const char* Name() override { return "dummy skip field"; }
+
+    virtual void Clear() override {
+        FieldBase::Clear();
+        value.clear();
+    }
+
+    bool String(const char* str, rapidjson::SizeType length, bool copy) override {
+        return true;
+    }
+
+    bool Int(int i) override {
+        return true;
+    }
+
+    bool Int64(int64_t i) override {
+        return true;
+    }
+
+    bool Uint(unsigned u) override {
+        return true;
+    }
+
+    bool Uint64(uint64_t u) override {
+        return true;
+    }
+
+    bool Double(double d) override {
+        return true;
+    }
+
+    bool Bool(bool b) override{
+        return true;
+    }
+
+    bool StartArray() override {
+        return true;
+    }
+
+    bool EndArray(rapidjson::SizeType elementCount) override{
+        return true;
+    }
+};
+
 struct StringField: public FieldBase {
     typedef std::string ValueType;
     ValueType value;
@@ -960,8 +1009,12 @@ bool SimpleParsedJSON<Fields...>::Key(
     } else {
         currentField = Get(str, length);
 
-        if (!currentField) {
+        if (!currentField && !skip_unknown) {
             throw spJSON::UnknownFieldError {str} ;
+        } else if (!currentField) {
+            skip_field = std::make_unique<SkipField>();
+            skip_info = std::make_unique<FieldInfo>(skip_field.get());
+            currentField = skip_info.get();
         }
 
         currentField->field->supplied = true;

@@ -577,6 +577,9 @@ private:
 
     // Tracks if we are currently handling an array...
     bool isArray;
+    static constexpr bool skip_unknown = true;
+    std::unique_ptr<FieldBase> skip_field;
+    std::unique_ptr<FieldInfo> skip_info;
 };
 
 #include "SimpleJSON.hpp"
