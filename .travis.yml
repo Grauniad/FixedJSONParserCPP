@@ -9,7 +9,7 @@ addons:
       - cmake
       - cmake-data
       - g++-7
-      - libboost1-all-dev
+      - libboost-all-dev
       - valgrind
 
 
